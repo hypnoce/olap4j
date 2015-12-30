@@ -85,6 +85,16 @@ interface Factory {
         XmlaOlap4jStatement olap4jStatement) throws OlapException;
 
     /**
+     * Creates a row set.
+     *
+     * @param olap4jStatement Statement
+     * @return Row set
+     * @throws OlapException on error
+     */
+    XmlaOlap4jRowSet newRowSet(
+            XmlaOlap4jStatement olap4jStatement) throws OlapException;
+
+    /**
      * Creates a statement.
      *
      * @param olap4jConnection Connection

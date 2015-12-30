@@ -19,6 +19,7 @@ package org.olap4j;
 
 import org.olap4j.mdx.SelectNode;
 
+import javax.sql.RowSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
@@ -55,6 +56,20 @@ public interface OlapStatement extends Statement, OlapWrapper {
      * or another thread cancels the statement (see {@link #cancel()})
      */
     CellSet executeOlapQuery(String mdx) throws OlapException;
+
+    /**
+     * Executes an OLAP statement.
+     *
+     * @param dax DAX <code>SELECT</code> statement
+     *
+     * @return Row set
+     *
+     * @throws OlapException if a database access error occurs,
+     * this method is called on a closed <code>OlapStatement</code>,
+     * the query times out (see {@link #setQueryTimeout(int)})
+     * or another thread cancels the statement (see {@link #cancel()})
+     */
+    RowSet executeTabularQuery(String dax) throws OlapException;
 
     /**
      * Executes an OLAP statement expressed as a parse tree.

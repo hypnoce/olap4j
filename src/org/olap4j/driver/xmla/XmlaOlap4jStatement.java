@@ -17,13 +17,26 @@
 */
 package org.olap4j.driver.xmla;
 
-import org.olap4j.*;
-import org.olap4j.driver.xmla.XmlaOlap4jConnection.BackendFlavor;
-import org.olap4j.mdx.*;
+import org.olap4j.CellSet;
+import org.olap4j.CellSetListener;
+import org.olap4j.OlapConnection;
+import org.olap4j.OlapException;
+import org.olap4j.OlapStatement;
+import org.olap4j.mdx.ParseTreeNode;
+import org.olap4j.mdx.ParseTreeWriter;
+import org.olap4j.mdx.SelectNode;
 
+import javax.sql.RowSet;
 import java.io.StringWriter;
-import java.sql.*;
-import java.util.concurrent.*;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.SQLWarning;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.function.Function;
 
 /**
  * Implementation of {@link org.olap4j.OlapStatement}
@@ -41,7 +54,7 @@ abstract class XmlaOlap4jStatement implements OlapStatement {
      * Any method which modifies this member must synchronize
      * on the {@link XmlaOlap4jStatement}.
      */
-    XmlaOlap4jCellSet openCellSet;
+    XmlaOlap4jResultSet openCellSet;
     private boolean canceled;
     int timeoutSeconds;
     Future<byte []> future;
@@ -85,7 +98,7 @@ abstract class XmlaOlap4jStatement implements OlapStatement {
         if (!closed) {
             closed = true;
             if (openCellSet != null) {
-                CellSet c = openCellSet;
+                ResultSet c = openCellSet;
                 openCellSet = null;
                 c.close();
             }
@@ -265,6 +278,16 @@ abstract class XmlaOlap4jStatement implements OlapStatement {
         throw new UnsupportedOperationException();
     }
 
+    @Override
+    public void closeOnCompletion() throws SQLException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean isCloseOnCompletion() throws SQLException {
+        throw new UnsupportedOperationException();
+    }
+
     // implement Wrapper
 
     public <T> T unwrap(Class<T> iface) throws SQLException {
@@ -280,8 +303,17 @@ abstract class XmlaOlap4jStatement implements OlapStatement {
     }
 
     // implement OlapStatement
-
     public CellSet executeOlapQuery(String mdx) throws OlapException {
+        return (CellSet) executeOlapQuery(mdx, (olap4jStatement) -> {
+            try {
+                return olap4jConnection.factory.newCellSet(olap4jStatement);
+            } catch (OlapException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    public XmlaOlap4jResultSet executeOlapQuery(String query, Function<XmlaOlap4jStatement, XmlaOlap4jResultSet> resultSetProvider) throws OlapException {
         final String catalog = olap4jConnection.getCatalog();
         final String roleName = olap4jConnection.getRoleName();
         final String propList = olap4jConnection.makeConnectionPropertyList();
@@ -307,7 +339,7 @@ abstract class XmlaOlap4jStatement implements OlapStatement {
             + "        <Execute xmlns=\"urn:schemas-microsoft-com:xml-analysis\">\n"
             + "        <Command>\n"
             + "        <Statement>\n"
-            + "           <![CDATA[\n" + mdx + "]]>\n"
+            + "           <![CDATA[\n" + query + "]]>\n"
             + "         </Statement>\n"
             + "        </Command>\n"
             + "        <Properties>\n"
@@ -343,7 +375,7 @@ abstract class XmlaOlap4jStatement implements OlapStatement {
         // Close the previous open CellSet, if there is one.
         synchronized (this) {
             if (openCellSet != null) {
-                final XmlaOlap4jCellSet cs = openCellSet;
+                final XmlaOlap4jResultSet cs = openCellSet;
                 openCellSet = null;
                 try {
                     cs.close();
@@ -356,7 +388,7 @@ abstract class XmlaOlap4jStatement implements OlapStatement {
             this.future =
                 olap4jConnection.proxy.submit(
                     olap4jConnection.serverInfos, request);
-            openCellSet = olap4jConnection.factory.newCellSet(this);
+            openCellSet = resultSetProvider.apply(this);
         }
         if (cancelEarly) {
             cancel();
@@ -373,6 +405,16 @@ abstract class XmlaOlap4jStatement implements OlapStatement {
     {
         final String mdx = toString(selectNode);
         return executeOlapQuery(mdx);
+    }
+
+    public RowSet executeTabularQuery(String dax) throws OlapException {
+        return (RowSet) executeOlapQuery(dax, (olap4jStatement) -> {
+            try {
+                return olap4jConnection.factory.newRowSet(olap4jStatement);
+            } catch (OlapException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     public void addListener(

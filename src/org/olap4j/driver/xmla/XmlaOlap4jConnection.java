@@ -38,6 +38,7 @@ import java.net.URL;
 import java.sql.*;
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
 
@@ -672,6 +673,76 @@ abstract class XmlaOlap4jConnection implements OlapConnection {
     }
 
     public void releaseSavepoint(Savepoint savepoint) throws SQLException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Clob createClob() throws SQLException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Blob createBlob() throws SQLException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public NClob createNClob() throws SQLException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public SQLXML createSQLXML() throws SQLException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean isValid(int timeout) throws SQLException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void setClientInfo(String name, String value) throws SQLClientInfoException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void setClientInfo(Properties properties) throws SQLClientInfoException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public String getClientInfo(String name) throws SQLException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Properties getClientInfo() throws SQLException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Array createArrayOf(String typeName, Object[] elements) throws SQLException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Struct createStruct(String typeName, Object[] attributes) throws SQLException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void abort(Executor executor) throws SQLException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void setNetworkTimeout(Executor executor, int milliseconds) throws SQLException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public int getNetworkTimeout() throws SQLException {
         throw new UnsupportedOperationException();
     }
 

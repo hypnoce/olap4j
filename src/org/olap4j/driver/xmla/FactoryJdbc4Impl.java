@@ -70,6 +70,11 @@ class FactoryJdbc4Impl implements Factory {
         return new XmlaOlap4jCellSetJdbc4(olap4jStatement);
     }
 
+    @Override
+    public XmlaOlap4jRowSet newRowSet(XmlaOlap4jStatement olap4jStatement) throws OlapException {
+        return new XmlaOlap4jRowSet(olap4jStatement);
+    }
+
     public XmlaOlap4jStatement newStatement(
         XmlaOlap4jConnection olap4jConnection)
     {

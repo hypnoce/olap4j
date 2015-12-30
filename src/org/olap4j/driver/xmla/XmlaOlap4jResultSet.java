@@ -1,107 +1,284 @@
-/*
-// Licensed to Julian Hyde under one or more contributor license
-// agreements. See the NOTICE file distributed with this work for
-// additional information regarding copyright ownership.
-//
-// Julian Hyde licenses this file to you under the Apache License,
-// Version 2.0 (the "License"); you may not use this file except in
-// compliance with the License. You may obtain a copy of the License at:
-//
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-*/
 package org.olap4j.driver.xmla;
 
-import org.olap4j.OlapWrapper;
+import org.olap4j.OlapException;
+import org.olap4j.OlapStatement;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.xml.sax.SAXException;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
 import java.net.URL;
-import java.sql.*;
+import java.sql.Array;
+import java.sql.Blob;
+import java.sql.Clob;
 import java.sql.Date;
-import java.util.*;
-import javax.sql.rowset.RowSetMetaDataImpl;
+import java.sql.JDBCType;
+import java.sql.NClob;
+import java.sql.Ref;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.RowId;
+import java.sql.SQLException;
+import java.sql.SQLType;
+import java.sql.SQLWarning;
+import java.sql.SQLXML;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 
-/**
- * Implementation of {@link ResultSet} which returns 0 rows.
- *
- * <p>This class is used to implement {@link java.sql.DatabaseMetaData}
- * methods for querying object types where those object types never have
- * any instances for this particular driver.</p>
- *
- * <p>This class has sub-classes which implement JDBC 3.0 and JDBC 4.0 APIs;
- * it is instantiated using {@link Factory#newEmptyResultSet}.</p>
- *
- * @author jhyde
- * @since May 24, 2007
- */
-abstract class EmptyResultSet implements ResultSet, OlapWrapper {
-    final XmlaOlap4jConnection olap4jConnection;
-    private final List<String> headerList;
-    private final List<List<Object>> rowList;
-    private int rowOrdinal = -1;
-    private final RowSetMetaDataImpl metaData = new RowSetMetaDataImpl();
+import static org.olap4j.driver.xmla.XmlaOlap4jUtil.MDDATASET_NS;
+import static org.olap4j.driver.xmla.XmlaOlap4jUtil.SOAP_NS;
+import static org.olap4j.driver.xmla.XmlaOlap4jUtil.XMLA_NS;
+import static org.olap4j.driver.xmla.XmlaOlap4jUtil.findChild;
+import static org.olap4j.driver.xmla.XmlaOlap4jUtil.parse;
 
-    /**
-     * Creates an EmptyResultSet.
-     *
-     * @param olap4jConnection Connection
-     * @param headerList Column names
-     * @param rowList List of row values
-     */
-    EmptyResultSet(
-        XmlaOlap4jConnection olap4jConnection,
-        List<String> headerList,
-        List<List<Object>> rowList)
-    {
-        this.olap4jConnection = olap4jConnection;
-        this.headerList = headerList;
-        this.rowList = rowList;
-        try {
-            metaData.setColumnCount(headerList.size());
-            for (int i = 0; i < headerList.size(); i++) {
-                metaData.setColumnName(i + 1, headerList.get(i));
+abstract class XmlaOlap4jResultSet implements ResultSet {
+    private static final String VALUE_TAG = "Value";
+
+    private static final boolean DEBUG = false;
+
+    enum XsdTypes {
+        XSD_INT("xsd:int", JDBCType.INTEGER),
+        XSD_INTEGER("xsd:integer", JDBCType.INTEGER),
+        XSD_DOUBLE("xsd:double", JDBCType.DOUBLE),
+        XSD_POSITIVEINTEGER("xsd:positiveInteger", JDBCType.INTEGER),
+        XSD_DECIMAL("xsd:decimal", JDBCType.DECIMAL),
+        XSD_SHORT("xsd:short", JDBCType.SMALLINT),
+        XSD_FLOAT("xsd:float", JDBCType.FLOAT),
+        XSD_LONG("xsd:long", JDBCType.BIGINT),
+        XSD_BOOLEAN("xsd:boolean", JDBCType.BOOLEAN),
+        XSD_BYTE("xsd:byte", JDBCType.TINYINT),
+        XSD_UNSIGNEDBYTE("xsd:unsignedByte", JDBCType.TINYINT),
+        XSD_UNSIGNEDSHORT("xsd:unsignedShort", JDBCType.SMALLINT),
+        XSD_UNSIGNEDLONG("xsd:unsignedLong", JDBCType.BIGINT),
+        XSD_UNSIGNEDINT("xsd:unsignedInt", JDBCType.INTEGER),
+        XSD_STRING("xsd:string", JDBCType.VARCHAR);
+
+        private final String name;
+        private final JDBCType sqlType;
+        private static final Map<String, XsdTypes> TYPES;
+        private static final Map<Integer, XsdTypes> SQL_TYPES;
+        static {
+            Map typesInitial = new HashMap<String, XsdTypes>();
+            Map sqlTypesInitial = new HashMap<Integer, XsdTypes>();
+            for (XsdTypes type : values()) {
+                typesInitial.put(type.name, type);
+                sqlTypesInitial.put(type.getSqlType().getVendorTypeNumber(), type);
             }
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
+            TYPES = Collections.unmodifiableMap(typesInitial);
+            SQL_TYPES = Collections.unmodifiableMap(sqlTypesInitial);
         }
+
+        XsdTypes(String name, JDBCType sqlType) {
+            this.name = name;
+            this.sqlType = sqlType;
+        }
+
+        public static XsdTypes fromString(String name) {
+            XsdTypes type = TYPES.get(name);
+            return type == null ? XSD_STRING : type;
+        }
+
+        public static XsdTypes fromSQLType(int sqlType) {
+            XsdTypes type = SQL_TYPES.get(sqlType);
+            return type == null ? XSD_STRING : type;
+        }
+
+        public JDBCType getSqlType() {
+            return sqlType;
+        }
+    }
+
+    final XmlaOlap4jStatement olap4jStatement;
+    protected boolean closed;
+
+    protected XmlaOlap4jResultSet(XmlaOlap4jStatement olap4jStatement) {
+        Objects.requireNonNull(olap4jStatement);
+        this.olap4jStatement = olap4jStatement;
+        this.closed = false;
     }
 
     /**
-     * Returns the value of a given column
-     * @param columnOrdinal 0-based ordinal
-     * @return Value
+     * Returns the error-handler.
+     *
+     * @return Error handler
      */
-    private Object getColumn(int columnOrdinal) {
-        return rowList.get(rowOrdinal).get(columnOrdinal);
+    protected XmlaHelper getHelper() {
+        return olap4jStatement.olap4jConnection.helper;
     }
 
-    private Object getColumn(String columnLabel) throws SQLException {
-        int column = headerList.indexOf(columnLabel);
-        if (column < 0) {
-            throw new SQLException("Column not found: " + columnLabel);
+    /**
+     * Gets response from the XMLA request and populates cell set axes and cells
+     * with it.
+     *
+     * @throws OlapException on error
+     */
+    void populate() throws OlapException {
+        byte[] bytes = olap4jStatement.getBytes();
+
+        Document doc;
+        try {
+            doc = parse(bytes);
+        } catch (IOException e) {
+            throw getHelper().createException(
+                    "error creating CellSet", e);
+        } catch (SAXException e) {
+            throw getHelper().createException(
+                    "error creating CellSet", e);
         }
-        return rowList.get(rowOrdinal).get(column);
+        // <SOAP-ENV:Envelope>
+        //   <SOAP-ENV:Header/>
+        //   <SOAP-ENV:Body>
+        //     <xmla:ExecuteResponse>
+        //       <xmla:return>
+        //         <root>
+        //           (see below)
+        //         </root>
+        //       <xmla:return>
+        //     </xmla:ExecuteResponse>
+        //   </SOAP-ENV:Body>
+        // </SOAP-ENV:Envelope>
+        final Element envelope = doc.getDocumentElement();
+        if (DEBUG) {
+            System.out.println(XmlaOlap4jUtil.toString(doc, true));
+        }
+        assert envelope.getLocalName().equals("Envelope");
+        assert envelope.getNamespaceURI().equals(SOAP_NS);
+        Element body =
+                findChild(envelope, SOAP_NS, "Body");
+        Element fault =
+                findChild(body, SOAP_NS, "Fault");
+        if (fault != null) {
+            // <SOAP-ENV:Fault>
+            //     <faultcode>SOAP-ENV:Client.00HSBC01</faultcode>
+            //     <faultstring>XMLA connection datasource not
+            //                  found</faultstring>
+            //     <faultactor>Mondrian</faultactor>
+            //     <detail>
+            //         <XA:error xmlns:XA="http://mondrian.sourceforge.net">
+            //             <code>00HSBC01</code>
+            //             <desc>The Mondrian XML: Mondrian Error:Internal
+            //                 error: no catalog named 'LOCALDB'</desc>
+            //         </XA:error>
+            //     </detail>
+            // </SOAP-ENV:Fault>
+            //
+            // TODO: log doc to logfile
+            throw getHelper().createException(
+                    "XMLA provider gave exception: "
+                            + XmlaOlap4jUtil.prettyPrint(fault));
+        }
+        Element executeResponse =
+                findChild(body, XMLA_NS, "ExecuteResponse");
+        Element returnElement =
+                findChild(executeResponse, XMLA_NS, "return");
+        parseReturnElement(returnElement);
     }
 
-    // implement ResultSet
+    protected abstract void parseReturnElement(Element returnElement) throws OlapException;
+
+    /**
+     * Returns the value of a cell, cast to the appropriate Java object type
+     * corresponding to the XML schema (XSD) type of the value.
+     *
+     * <p>The value type must conform to XSD definitions of the XML element. See
+     * <a href="http://books.xmlschemata.org/relaxng/relax-CHP-19.html">RELAX
+     * NG, Chapter 19</a> for a full list of possible data types.
+     *
+     * <p>This method does not currently support all types; most numeric types
+     * are supported, but no dates are yet supported. Those not supported
+     * fall back to Strings.
+     *
+     * @param cell The cell of which we want the casted object.
+     * @return The object with a correct value.
+     * @throws OlapException if any error is encountered while casting the cell
+     * value
+     */
+    protected Object getTypedValue(Element cell) throws OlapException {
+        Element elm = findChild(cell, MDDATASET_NS, "Value");
+        if (elm == null) {
+            // Cell is null.
+            return null;
+        }
+
+        // The object type is contained in xsi:type attribute.
+        String type = elm.getAttribute("xsi:type");
+        XsdTypes xsdType =  XsdTypes.fromString(elm.getAttribute("xsi:type"));
+        return getTypedValue(cell, VALUE_TAG, xsdType);
+    }
+
+    /**
+     * Returns the value of a cell, cast to the appropriate Java object type
+     * corresponding to the XML schema (XSD) type of the value.
+     *
+     * <p>The value type must conform to XSD definitions of the XML element. See
+     * <a href="http://books.xmlschemata.org/relaxng/relax-CHP-19.html">RELAX
+     * NG, Chapter 19</a> for a full list of possible data types.
+     *
+     * <p>This method does not currently support all types; most numeric types
+     * are supported, but no dates are yet supported. Those not supported
+     * fall back to Strings.
+     *
+     * @param row The row of which we want the casted object.
+     * @return The object with a correct value.
+     * @throws OlapException if any error is encountered while casting the cell
+     * value
+     */
+    protected Object getTypedValue(Element row, String name, XsdTypes xsdType) throws OlapException {
+        try {
+            switch (xsdType) {
+                case XSD_BOOLEAN:
+                    return XmlaOlap4jUtil.booleanElement(row, name);
+                case XSD_INT:
+                    return XmlaOlap4jUtil.intElement(row, name);
+                case XSD_INTEGER:
+                    return XmlaOlap4jUtil.bigIntegerElement(row, name);
+                case XSD_DOUBLE:
+                    return XmlaOlap4jUtil.doubleElement(row, name);
+                case XSD_POSITIVEINTEGER:
+                    return XmlaOlap4jUtil.bigIntegerElement(row, name);
+                case XSD_DECIMAL:
+                    return XmlaOlap4jUtil.bigDecimalElement(row, name);
+                case XSD_SHORT:
+                    return XmlaOlap4jUtil.shortElement(row, name);
+                case XSD_FLOAT:
+                    return XmlaOlap4jUtil.floatElement(row, name);
+                case XSD_LONG:
+                    return XmlaOlap4jUtil.longElement(row, name);
+                case XSD_BYTE:
+                    return XmlaOlap4jUtil.byteElement(row, name);
+                case XSD_UNSIGNEDBYTE:
+                    return XmlaOlap4jUtil.shortElement(row, name);
+                case XSD_UNSIGNEDSHORT:
+                    return XmlaOlap4jUtil.intElement(row, name);
+                case XSD_UNSIGNEDLONG:
+                    return XmlaOlap4jUtil.bigDecimalElement(row, name);
+                case XSD_UNSIGNEDINT:
+                    return XmlaOlap4jUtil.longElement(row, name);
+                default:
+                    return XmlaOlap4jUtil.stringElement(row, name);
+            }
+        } catch (Exception e) {
+            throw getHelper().createException(
+                    "Error while casting a cell value to the correct java type for"
+                            + " its XSD type " + xsdType,
+                    e);
+        }
+    }
 
     public boolean next() throws SQLException {
-        // note that if rowOrdinal == rowList.size - 1, we move but then return
-        // false
-        if (rowOrdinal < rowList.size()) {
-            ++rowOrdinal;
-        }
-        return rowOrdinal < rowList.size();
+        throw new UnsupportedOperationException();
     }
 
     public void close() throws SQLException {
+        this.closed = true;
     }
 
     public boolean wasNull() throws SQLException {
@@ -109,119 +286,57 @@ abstract class EmptyResultSet implements ResultSet, OlapWrapper {
     }
 
     public String getString(int columnIndex) throws SQLException {
-        Object o = getColumn(columnIndex - 1);
-        return o == null ? null : o.toString();
+        throw new UnsupportedOperationException();
     }
 
     public boolean getBoolean(int columnIndex) throws SQLException {
-        Object o = getColumn(columnIndex - 1);
-        if (o == null) {
-            return false;
-        }
-        if (o instanceof Boolean) {
-            return (Boolean) o;
-        } else if (o instanceof String) {
-            return Boolean.valueOf((String) o);
-        } else {
-            return !o.equals(0);
-        }
-    }
-
-    private Number convertToNumber(Object o) {
-        if (o instanceof Number) {
-            return (Number)o;
-        } else {
-            return new BigDecimal(o.toString());
-        }
+        throw new UnsupportedOperationException();
     }
 
     public byte getByte(int columnIndex) throws SQLException {
-        Object o = getColumn(columnIndex - 1);
-        if (o == null) {
-            return 0;
-        }
-        return convertToNumber(o).byteValue();
+        throw new UnsupportedOperationException();
     }
 
     public short getShort(int columnIndex) throws SQLException {
-        Object o = getColumn(columnIndex - 1);
-        if (o == null) {
-            return 0;
-        }
-        return convertToNumber(o).shortValue();
+        throw new UnsupportedOperationException();
     }
 
     public int getInt(int columnIndex) throws SQLException {
-        Object o = getColumn(columnIndex - 1);
-        if (o == null) {
-            return 0;
-        }
-        return convertToNumber(o).intValue();
+        throw new UnsupportedOperationException();
     }
 
     public long getLong(int columnIndex) throws SQLException {
-        Object o = getColumn(columnIndex - 1);
-        if (o == null) {
-            return 0;
-        }
-        return ((Number) o).longValue();
+        throw new UnsupportedOperationException();
     }
 
     public float getFloat(int columnIndex) throws SQLException {
-        Object o = getColumn(columnIndex - 1);
-        if (o == null) {
-            return 0;
-        }
-        return convertToNumber(o).floatValue();
+        throw new UnsupportedOperationException();
     }
 
     public double getDouble(int columnIndex) throws SQLException {
-        Object o = getColumn(columnIndex - 1);
-        if (o == null) {
-            return 0;
-        }
-        return convertToNumber(o).doubleValue();
+        throw new UnsupportedOperationException();
     }
 
     public BigDecimal getBigDecimal(
-        int columnIndex,
-        int scale)
-        throws SQLException
+            int columnIndex, int scale) throws SQLException
     {
-        Object o = getColumn(columnIndex - 1);
-        if (o == null) {
-            return null;
-        }
-        BigDecimal bd;
-        if (o instanceof BigDecimal) {
-            bd = (BigDecimal)o;
-        } else {
-            bd = new BigDecimal(o.toString());
-        }
-        if (bd.scale() != scale) {
-            bd = bd.setScale(scale);
-        }
-        return bd;
+        throw new UnsupportedOperationException();
     }
 
     public byte[] getBytes(int columnIndex) throws SQLException {
-        Object o = getColumn(columnIndex - 1);
-        return (byte[]) o;
+        throw new UnsupportedOperationException();
     }
 
     public Date getDate(int columnIndex) throws SQLException {
-        Object o = getColumn(columnIndex - 1);
-        return (Date) o;
+        throw new UnsupportedOperationException();
     }
 
     public Time getTime(int columnIndex) throws SQLException {
-        Object o = getColumn(columnIndex - 1);
-        return (Time) o;
+        throw new UnsupportedOperationException();
     }
 
     public Timestamp getTimestamp(int columnIndex) throws SQLException {
-        Object o = getColumn(columnIndex - 1);
-        return (Timestamp) o;
+        throw new UnsupportedOperationException();
     }
 
     public InputStream getAsciiStream(int columnIndex) throws SQLException {
@@ -237,108 +352,57 @@ abstract class EmptyResultSet implements ResultSet, OlapWrapper {
     }
 
     public String getString(String columnLabel) throws SQLException {
-        Object o = getColumn(columnLabel);
-        return o == null ? null : o.toString();
+        throw new UnsupportedOperationException();
     }
 
     public boolean getBoolean(String columnLabel) throws SQLException {
-        Object o = getColumn(columnLabel);
-        if (o instanceof Boolean) {
-            return (Boolean) o;
-        } else if (o instanceof String) {
-            return Boolean.valueOf((String) o);
-        } else {
-            return !o.equals(0);
-        }
+        throw new UnsupportedOperationException();
     }
 
     public byte getByte(String columnLabel) throws SQLException {
-        Object o = getColumn(columnLabel);
-        if (o == null) {
-            return 0;
-        }
-        return convertToNumber(o).byteValue();
+        throw new UnsupportedOperationException();
     }
 
     public short getShort(String columnLabel) throws SQLException {
-        Object o = getColumn(columnLabel);
-        if (o == null) {
-            return 0;
-        }
-        return convertToNumber(o).shortValue();
+        throw new UnsupportedOperationException();
     }
 
     public int getInt(String columnLabel) throws SQLException {
-        Object o = getColumn(columnLabel);
-        if (o == null) {
-            return 0;
-        }
-        return convertToNumber(o).intValue();
+        throw new UnsupportedOperationException();
     }
 
     public long getLong(String columnLabel) throws SQLException {
-        Object o = getColumn(columnLabel);
-        if (o == null) {
-            return 0;
-        }
-        return convertToNumber(o).longValue();
+        throw new UnsupportedOperationException();
     }
 
     public float getFloat(String columnLabel) throws SQLException {
-        Object o = getColumn(columnLabel);
-        if (o == null) {
-            return 0;
-        }
-        return convertToNumber(o).floatValue();
+        throw new UnsupportedOperationException();
     }
 
     public double getDouble(String columnLabel) throws SQLException {
-        Object o = getColumn(columnLabel);
-        if (o == null) {
-            return 0;
-        }
-        return convertToNumber(o).doubleValue();
+        throw new UnsupportedOperationException();
     }
 
     public BigDecimal getBigDecimal(
-        String columnLabel,
-        int scale)
-        throws SQLException
+            String columnLabel, int scale) throws SQLException
     {
-        Object o = getColumn(columnLabel);
-        if (o == null) {
-            return null;
-        }
-        BigDecimal bd;
-        if (o instanceof BigDecimal) {
-            bd = (BigDecimal)o;
-        } else {
-            bd = new BigDecimal(o.toString());
-        }
-        if (bd.scale() != scale) {
-           bd = bd.setScale(scale);
-        }
-        return bd;
+        throw new UnsupportedOperationException();
     }
 
     public byte[] getBytes(String columnLabel) throws SQLException {
-        Object o = getColumn(columnLabel);
-        return (byte[]) o;
+        throw new UnsupportedOperationException();
     }
 
     public Date getDate(String columnLabel) throws SQLException {
-        Object o = getColumn(columnLabel);
-        return (Date) o;
+        throw new UnsupportedOperationException();
     }
 
     public Time getTime(String columnLabel) throws SQLException {
-        Object o = getColumn(columnLabel);
-        return (Time) o;
+        throw new UnsupportedOperationException();
     }
 
     public Timestamp getTimestamp(String columnLabel) throws SQLException {
-        Object o = getColumn(columnLabel);
-        return (Timestamp) o;
+        throw new UnsupportedOperationException();
     }
 
     public InputStream getAsciiStream(String columnLabel) throws SQLException {
@@ -346,7 +410,7 @@ abstract class EmptyResultSet implements ResultSet, OlapWrapper {
     }
 
     public InputStream getUnicodeStream(String columnLabel)
-        throws SQLException
+            throws SQLException
     {
         throw new UnsupportedOperationException();
     }
@@ -367,24 +431,16 @@ abstract class EmptyResultSet implements ResultSet, OlapWrapper {
         throw new UnsupportedOperationException();
     }
 
-    public ResultSetMetaData getMetaData() throws SQLException {
-        return metaData;
-    }
-
     public Object getObject(int columnIndex) throws SQLException {
-        return getColumn(columnIndex - 1);
+        throw new UnsupportedOperationException();
     }
 
     public Object getObject(String columnLabel) throws SQLException {
-        return getColumn(columnLabel);
+        throw new UnsupportedOperationException();
     }
 
     public int findColumn(String columnLabel) throws SQLException {
-        int column = headerList.indexOf(columnLabel);
-        if (column < 0) {
-            throw new SQLException("Column not found: " + columnLabel);
-        }
-        return column;
+        throw new UnsupportedOperationException();
     }
 
     public Reader getCharacterStream(int columnIndex) throws SQLException {
@@ -396,106 +452,59 @@ abstract class EmptyResultSet implements ResultSet, OlapWrapper {
     }
 
     public BigDecimal getBigDecimal(int columnIndex) throws SQLException {
-        Object o = getColumn(columnIndex - 1);
-        if (o == null) {
-            return null;
-        }
-        BigDecimal bd;
-        if (o instanceof BigDecimal) {
-            bd = (BigDecimal)o;
-        } else {
-            bd = new BigDecimal(o.toString());
-        }
-        return bd;
+        throw new UnsupportedOperationException();
     }
 
     public BigDecimal getBigDecimal(String columnLabel) throws SQLException {
-        Object o = getColumn(columnLabel);
-        if (o == null) {
-            return null;
-        }
-        BigDecimal bd;
-        if (o instanceof BigDecimal) {
-            bd = (BigDecimal)o;
-        } else {
-            bd = new BigDecimal(o.toString());
-        }
-        return bd;
+        throw new UnsupportedOperationException();
     }
 
     public boolean isBeforeFirst() throws SQLException {
-        return rowOrdinal < 0;
+        throw new UnsupportedOperationException();
     }
 
     public boolean isAfterLast() throws SQLException {
-        return rowOrdinal >= rowList.size();
+        throw new UnsupportedOperationException();
     }
 
     public boolean isFirst() throws SQLException {
-        return rowOrdinal == 0;
+        throw new UnsupportedOperationException();
     }
 
     public boolean isLast() throws SQLException {
-        return rowOrdinal == rowList.size() - 1;
+        throw new UnsupportedOperationException();
     }
 
     public void beforeFirst() throws SQLException {
-        rowOrdinal = -1;
+        throw new UnsupportedOperationException();
     }
 
     public void afterLast() throws SQLException {
-        rowOrdinal = rowList.size();
+        throw new UnsupportedOperationException();
     }
 
     public boolean first() throws SQLException {
-        if (rowList.size() == 0) {
-            return false;
-        } else {
-            rowOrdinal = 0;
-            return true;
-        }
+        throw new UnsupportedOperationException();
     }
 
     public boolean last() throws SQLException {
-        if (rowList.size() == 0) {
-            return false;
-        } else {
-            rowOrdinal = rowList.size() - 1;
-            return true;
-        }
+        throw new UnsupportedOperationException();
     }
 
     public int getRow() throws SQLException {
-        return rowOrdinal + 1; // 1-based
+        throw new UnsupportedOperationException();
     }
 
     public boolean absolute(int row) throws SQLException {
-        int newRowOrdinal = row - 1;// convert to 0-based
-        if (newRowOrdinal >= 0 && newRowOrdinal < rowList.size()) {
-            rowOrdinal = newRowOrdinal;
-            return true;
-        } else {
-            return false;
-        }
+        throw new UnsupportedOperationException();
     }
 
     public boolean relative(int rows) throws SQLException {
-        int newRowOrdinal = rowOrdinal + (rows - 1);
-        if (newRowOrdinal >= 0 && newRowOrdinal < rowList.size()) {
-            rowOrdinal = newRowOrdinal;
-            return true;
-        } else {
-            return false;
-        }
+        throw new UnsupportedOperationException();
     }
 
     public boolean previous() throws SQLException {
-        // converse of next(); note that if rowOrdinal == 0, we decrement
-        // but return false
-        if (rowOrdinal >= 0) {
-            --rowOrdinal;
-        }
-        return rowOrdinal >= 0;
+        throw new UnsupportedOperationException();
     }
 
     public void setFetchDirection(int direction) throws SQLException {
@@ -567,7 +576,7 @@ abstract class EmptyResultSet implements ResultSet, OlapWrapper {
     }
 
     public void updateBigDecimal(
-        int columnIndex, BigDecimal x) throws SQLException
+            int columnIndex, BigDecimal x) throws SQLException
     {
         throw new UnsupportedOperationException();
     }
@@ -589,31 +598,31 @@ abstract class EmptyResultSet implements ResultSet, OlapWrapper {
     }
 
     public void updateTimestamp(
-        int columnIndex, Timestamp x) throws SQLException
+            int columnIndex, Timestamp x) throws SQLException
     {
         throw new UnsupportedOperationException();
     }
 
     public void updateAsciiStream(
-        int columnIndex, InputStream x, int length) throws SQLException
+            int columnIndex, InputStream x, int length) throws SQLException
     {
         throw new UnsupportedOperationException();
     }
 
     public void updateBinaryStream(
-        int columnIndex, InputStream x, int length) throws SQLException
+            int columnIndex, InputStream x, int length) throws SQLException
     {
         throw new UnsupportedOperationException();
     }
 
     public void updateCharacterStream(
-        int columnIndex, Reader x, int length) throws SQLException
+            int columnIndex, Reader x, int length) throws SQLException
     {
         throw new UnsupportedOperationException();
     }
 
     public void updateObject(
-        int columnIndex, Object x, int scaleOrLength) throws SQLException
+            int columnIndex, Object x, int scaleOrLength) throws SQLException
     {
         throw new UnsupportedOperationException();
     }
@@ -627,7 +636,7 @@ abstract class EmptyResultSet implements ResultSet, OlapWrapper {
     }
 
     public void updateBoolean(
-        String columnLabel, boolean x) throws SQLException
+            String columnLabel, boolean x) throws SQLException
     {
         throw new UnsupportedOperationException();
     }
@@ -657,7 +666,7 @@ abstract class EmptyResultSet implements ResultSet, OlapWrapper {
     }
 
     public void updateBigDecimal(
-        String columnLabel, BigDecimal x) throws SQLException
+            String columnLabel, BigDecimal x) throws SQLException
     {
         throw new UnsupportedOperationException();
     }
@@ -679,31 +688,31 @@ abstract class EmptyResultSet implements ResultSet, OlapWrapper {
     }
 
     public void updateTimestamp(
-        String columnLabel, Timestamp x) throws SQLException
+            String columnLabel, Timestamp x) throws SQLException
     {
         throw new UnsupportedOperationException();
     }
 
     public void updateAsciiStream(
-        String columnLabel, InputStream x, int length) throws SQLException
+            String columnLabel, InputStream x, int length) throws SQLException
     {
         throw new UnsupportedOperationException();
     }
 
     public void updateBinaryStream(
-        String columnLabel, InputStream x, int length) throws SQLException
+            String columnLabel, InputStream x, int length) throws SQLException
     {
         throw new UnsupportedOperationException();
     }
 
     public void updateCharacterStream(
-        String columnLabel, Reader reader, int length) throws SQLException
+            String columnLabel, Reader reader, int length) throws SQLException
     {
         throw new UnsupportedOperationException();
     }
 
     public void updateObject(
-        String columnLabel, Object x, int scaleOrLength) throws SQLException
+            String columnLabel, Object x, int scaleOrLength) throws SQLException
     {
         throw new UnsupportedOperationException();
     }
@@ -740,12 +749,12 @@ abstract class EmptyResultSet implements ResultSet, OlapWrapper {
         throw new UnsupportedOperationException();
     }
 
-    public Statement getStatement() throws SQLException {
-        throw new UnsupportedOperationException();
+    public OlapStatement getStatement() {
+        return olap4jStatement;
     }
 
     public Object getObject(
-        int columnIndex, Map<String, Class<?>> map) throws SQLException
+            int columnIndex, Map<String, Class<?>> map) throws SQLException
     {
         throw new UnsupportedOperationException();
     }
@@ -767,7 +776,7 @@ abstract class EmptyResultSet implements ResultSet, OlapWrapper {
     }
 
     public Object getObject(
-        String columnLabel, Map<String, Class<?>> map) throws SQLException
+            String columnLabel, Map<String, Class<?>> map) throws SQLException
     {
         throw new UnsupportedOperationException();
     }
@@ -805,13 +814,13 @@ abstract class EmptyResultSet implements ResultSet, OlapWrapper {
     }
 
     public Timestamp getTimestamp(
-        int columnIndex, Calendar cal) throws SQLException
+            int columnIndex, Calendar cal) throws SQLException
     {
         throw new UnsupportedOperationException();
     }
 
     public Timestamp getTimestamp(
-        String columnLabel, Calendar cal) throws SQLException
+            String columnLabel, Calendar cal) throws SQLException
     {
         throw new UnsupportedOperationException();
     }
@@ -856,23 +865,18 @@ abstract class EmptyResultSet implements ResultSet, OlapWrapper {
         throw new UnsupportedOperationException();
     }
 
-    @Override
-    public void updateObject(int columnIndex, Object x, SQLType targetSqlType, int scaleOrLength) throws SQLException {
+    // implement Wrapper
+
+    public <T> T unwrap(Class<T> iface) throws SQLException {
+        throw new UnsupportedOperationException();
+    }
+
+    public boolean isWrapperFor(Class<?> iface) throws SQLException {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public void updateObject(String columnLabel, Object x, SQLType targetSqlType, int scaleOrLength) throws SQLException {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void updateObject(int columnIndex, Object x, SQLType targetSqlType) throws SQLException {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void updateObject(String columnLabel, Object x, SQLType targetSqlType) throws SQLException {
+    public ResultSetMetaData getMetaData() throws SQLException {
         throw new UnsupportedOperationException();
     }
 
@@ -1125,19 +1129,4 @@ abstract class EmptyResultSet implements ResultSet, OlapWrapper {
     public <T> T getObject(String columnLabel, Class<T> type) throws SQLException {
         throw new UnsupportedOperationException();
     }
-
-    // implement Wrapper
-
-    public <T> T unwrap(Class<T> iface) throws SQLException {
-        if (iface.isInstance(this)) {
-            return iface.cast(this);
-        }
-        throw olap4jConnection.helper.createException("cannot cast");
-    }
-
-    public boolean isWrapperFor(Class<?> iface) throws SQLException {
-        return iface.isInstance(this);
-    }
 }
-
-// End EmptyResultSet.java

@@ -44,7 +44,7 @@ src/org/olap4j/mdx/parser/impl/Token.java,
 src/org/olap4j/mdx/parser/impl/TokenMgrError.java,
 src/org/olap4j/driver/xmla/XmlaOlap4jDriverVersion.java" />
 
-    <target name="checkJdkVersion" unless="jdk17.present">
+    <target name="checkJdkVersion" unless="jdk18.present">
       <fail message="The 'jar' target (and dependent targets 'dist', 'binzip')
                      must be run under JDK 1.7." />
     </target>
@@ -59,6 +59,10 @@ src/org/olap4j/driver/xmla/XmlaOlap4jDriverVersion.java" />
 
     <condition property="jdk17.present">
         <contains string="${java.version}" substring="1.7." />
+    </condition>
+
+    <condition property="jdk18.present">
+        <contains string="${java.version}" substring="1.8." />
     </condition>
 
     <path id="project.bootclasspath.jdk15">
@@ -144,7 +148,7 @@ olap4j_api.pdf"
         depends="init, compile.pre, compileJdk15, compileJdk16, compileJdk17, compile.src_copy, compile.res_copy, compile.lic_copy, compile.post"
         description="Performs all the steps to prepare the bin directory with a complete compilation" />
 
-    <target name="jar" depends="checkJdkVersion, compile, compile-tests, set-build.id, generate.manifest"
+    <target name="jar" depends="checkJdkVersion, compile, set-build.id, generate.manifest"
         description="Jars up the bin directory after a compile">
         <zip destfile="${dist.dir}/${ivy.artifact.id}-${project.revision}.jar">
             <zipfileset dir="${basedir}" prefix=""
@@ -179,16 +183,16 @@ META-INF/**"/>
 
     <target name="tck-jar" depends="jar"
         description="Jars up the Test Compatibility Kit (TCK) after a compile">
-        <zip destfile="${dist.dir}/${ivy.artifact.id}-tck-${project.revision}.jar">
-            <zipfileset dir="${basedir}" prefix=""
-                includes="
-LICENSE,
-NOTICE,
-README.txt,
-VERSION.txt" />
-            <zipfileset dir="${testclasses.dir}" prefix="" includes="**/*"
-                excludes="jndi.properties" />
-        </zip>
+        <!--<zip destfile="${dist.dir}/${ivy.artifact.id}-tck-${project.revision}.jar">-->
+            <!--<zipfileset dir="${basedir}" prefix=""-->
+                <!--includes="-->
+<!--LICENSE,-->
+<!--NOTICE,-->
+<!--README.txt,-->
+<!--VERSION.txt" />-->
+            <!--<zipfileset dir="${testclasses.dir}" prefix="" includes="**/*"-->
+                <!--excludes="jndi.properties" />-->
+        <!--</zip>-->
     </target>
 
     <target name="compileJdk15">
@@ -197,9 +201,8 @@ VERSION.txt" />
           debug="${javac.debug}"
           deprecation="${javac.deprecation}"
           fork="true"
-          bootclasspathref="project.bootclasspath.jdk15"
-          source="1.5"
-          target="1.5"
+          source="1.8"
+          target="1.8"
           includeantruntime="false">
         <classpath>
           <path refid="classpath" />
@@ -217,9 +220,8 @@ VERSION.txt" />
           debug="${javac.debug}"
           deprecation="${javac.deprecation}"
           fork="true"
-          bootclasspathref="project.bootclasspath.jdk16"
-          source="1.6"
-          target="1.6"
+          source="1.8"
+          target="1.8"
           includeantruntime="false">
         <classpath>
           <path refid="classpath" />
@@ -236,8 +238,8 @@ VERSION.txt" />
           debug="${javac.debug}"
           deprecation="${javac.deprecation}"
           fork="true"
-          source="1.7"
-          target="1.7"
+          source="1.8"
+          target="1.8"
           includeantruntime="false">
         <classpath>
           <path refid="classpath" />
