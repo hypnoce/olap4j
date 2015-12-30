@@ -31,6 +31,7 @@ import java.io.StringWriter;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
+import java.util.Objects;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -87,7 +88,11 @@ abstract class XmlaOlap4jStatement implements OlapStatement {
     // implement Statement
 
     public ResultSet executeQuery(String sql) throws SQLException {
-        throw new UnsupportedOperationException();
+        Objects.requireNonNull(sql);
+        if(sql.toLowerCase().startsWith("evaluate")) {
+            return executeTabularQuery(sql);
+        }
+        return executeOlapQuery(sql);
     }
 
     public int executeUpdate(String sql) throws SQLException {

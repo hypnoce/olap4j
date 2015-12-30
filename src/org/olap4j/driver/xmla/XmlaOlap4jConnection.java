@@ -615,7 +615,7 @@ abstract class XmlaOlap4jConnection implements OlapConnection {
     }
 
     public SQLWarning getWarnings() throws SQLException {
-        throw new UnsupportedOperationException();
+        return null;
     }
 
     public void clearWarnings() throws SQLException {
