@@ -22,11 +22,12 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.RowId;
 import java.sql.SQLException;
-import java.sql.SQLType;
 import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
@@ -59,7 +60,8 @@ abstract class XmlaOlap4jResultSet implements ResultSet {
         XSD_UNSIGNEDSHORT("xsd:unsignedShort", JDBCType.SMALLINT),
         XSD_UNSIGNEDLONG("xsd:unsignedLong", JDBCType.BIGINT),
         XSD_UNSIGNEDINT("xsd:unsignedInt", JDBCType.INTEGER),
-        XSD_STRING("xsd:string", JDBCType.VARCHAR);
+        XSD_STRING("xsd:string", JDBCType.VARCHAR),
+        XSD_DATETIME("xsd:dateTime", JDBCType.DATE);
 
         private final String name;
         private final JDBCType sqlType;
@@ -262,6 +264,10 @@ abstract class XmlaOlap4jResultSet implements ResultSet {
                     return XmlaOlap4jUtil.bigDecimalElement(row, name);
                 case XSD_UNSIGNEDINT:
                     return XmlaOlap4jUtil.longElement(row, name);
+                case XSD_DATETIME:
+                    String text = XmlaOlap4jUtil.stringElement(row, name);
+                    if(text == null) return null;
+                    return Date.from(LocalDateTime.parse(text).toInstant(ZoneOffset.UTC));
                 default:
                     return XmlaOlap4jUtil.stringElement(row, name);
             }
@@ -286,7 +292,7 @@ abstract class XmlaOlap4jResultSet implements ResultSet {
     }
 
     public String getString(int columnIndex) throws SQLException {
-        throw new UnsupportedOperationException();
+        return (String) getObject(columnIndex);
     }
 
     public boolean getBoolean(int columnIndex) throws SQLException {
@@ -294,27 +300,33 @@ abstract class XmlaOlap4jResultSet implements ResultSet {
     }
 
     public byte getByte(int columnIndex) throws SQLException {
-        throw new UnsupportedOperationException();
+        Object o = getObject(columnIndex);
+        return o == null ? 0 : ((Number)o).byteValue();
     }
 
     public short getShort(int columnIndex) throws SQLException {
-        throw new UnsupportedOperationException();
+        Object o = getObject(columnIndex);
+        return o == null ? 0 : ((Number)o).shortValue();
     }
 
     public int getInt(int columnIndex) throws SQLException {
-        throw new UnsupportedOperationException();
+        Object o = getObject(columnIndex);
+        return o == null ? 0 : ((Number)o).intValue();
     }
 
     public long getLong(int columnIndex) throws SQLException {
-        throw new UnsupportedOperationException();
+        Object o = getObject(columnIndex);
+        return o == null ? 0 : ((Number)o).longValue();
     }
 
     public float getFloat(int columnIndex) throws SQLException {
-        throw new UnsupportedOperationException();
+        Object o = getObject(columnIndex);
+        return o == null ? 0 : ((Number)o).floatValue();
     }
 
     public double getDouble(int columnIndex) throws SQLException {
-        throw new UnsupportedOperationException();
+        Object o = getObject(columnIndex);
+        return o == null ? 0 : ((Number)o).doubleValue();
     }
 
     public BigDecimal getBigDecimal(
@@ -328,7 +340,7 @@ abstract class XmlaOlap4jResultSet implements ResultSet {
     }
 
     public Date getDate(int columnIndex) throws SQLException {
-        throw new UnsupportedOperationException();
+        return (Date) getObject(columnIndex);
     }
 
     public Time getTime(int columnIndex) throws SQLException {
@@ -352,7 +364,7 @@ abstract class XmlaOlap4jResultSet implements ResultSet {
     }
 
     public String getString(String columnLabel) throws SQLException {
-        throw new UnsupportedOperationException();
+        return (String) getObject(columnLabel);
     }
 
     public boolean getBoolean(String columnLabel) throws SQLException {
@@ -360,27 +372,27 @@ abstract class XmlaOlap4jResultSet implements ResultSet {
     }
 
     public byte getByte(String columnLabel) throws SQLException {
-        throw new UnsupportedOperationException();
+        return getByte(findColumn(columnLabel));
     }
 
     public short getShort(String columnLabel) throws SQLException {
-        throw new UnsupportedOperationException();
+        return getShort(findColumn(columnLabel));
     }
 
     public int getInt(String columnLabel) throws SQLException {
-        throw new UnsupportedOperationException();
+        return getInt(findColumn(columnLabel));
     }
 
     public long getLong(String columnLabel) throws SQLException {
-        throw new UnsupportedOperationException();
+        return getLong(findColumn(columnLabel));
     }
 
     public float getFloat(String columnLabel) throws SQLException {
-        throw new UnsupportedOperationException();
+        return getFloat(findColumn(columnLabel));
     }
 
     public double getDouble(String columnLabel) throws SQLException {
-        throw new UnsupportedOperationException();
+        return getDouble(findColumn(columnLabel));
     }
 
     public BigDecimal getBigDecimal(
@@ -394,7 +406,7 @@ abstract class XmlaOlap4jResultSet implements ResultSet {
     }
 
     public Date getDate(String columnLabel) throws SQLException {
-        throw new UnsupportedOperationException();
+        return getDate(findColumn(columnLabel));
     }
 
     public Time getTime(String columnLabel) throws SQLException {
@@ -436,7 +448,7 @@ abstract class XmlaOlap4jResultSet implements ResultSet {
     }
 
     public Object getObject(String columnLabel) throws SQLException {
-        throw new UnsupportedOperationException();
+        return getObject(findColumn(columnLabel));
     }
 
     public int findColumn(String columnLabel) throws SQLException {
@@ -907,7 +919,7 @@ abstract class XmlaOlap4jResultSet implements ResultSet {
 
     @Override
     public boolean isClosed() throws SQLException {
-        throw new UnsupportedOperationException();
+        return closed;
     }
 
     @Override

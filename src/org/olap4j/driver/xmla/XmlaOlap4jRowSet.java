@@ -32,6 +32,8 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.stream.IntStream;
 
 import static org.olap4j.driver.xmla.XmlaOlap4jUtil.childElements;
 import static org.olap4j.driver.xmla.XmlaOlap4jUtil.findChild;
@@ -684,7 +686,7 @@ public class XmlaOlap4jRowSet extends XmlaOlap4jResultSet implements RowSet {
     }
 
     @Override
-    public ResultSetMetaData getMetaData() throws SQLException {
+    public ResultSetMetaData getMetaData() {
         return rowSetMetaData;
     }
 
@@ -694,8 +696,14 @@ public class XmlaOlap4jRowSet extends XmlaOlap4jResultSet implements RowSet {
     }
 
     @Override
-    public int getInt(int columnIndex) throws SQLException {
-        Object o = getObject(columnIndex);
-        return o == null ? 0 : ((Number)o).intValue();
+    public int findColumn(String columnLabel) throws SQLException {
+        Objects.requireNonNull(columnLabel);
+        return IntStream.range(1, getMetaData().getColumnCount() + 1).filter(i -> {
+            try {
+                return columnLabel.equals(getMetaData().getColumnLabel(i));
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        }).findAny().orElseThrow(() -> new SQLException("Invalid column label " + columnLabel));
     }
 }
