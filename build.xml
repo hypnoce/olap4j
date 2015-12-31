@@ -19,12 +19,6 @@
     <property file="${basedir}/test.properties"/>
     <import file="subfloor.xml" />
 
-    <property name="jar-jdk14.file"
-        value="${dist.dir}/${ivy.artifact.id}-jdk14-${project.revision}.jar" />
-
-    <property name="classes-jdk14.dir"
-                value="${bin.dir}/classes-jdk14" />
-
     <property name="dist.doc.file" value="${dist.dir}/doc.tar.gz" />
 
     <!-- Files that used to be generated. We continue to remove them, just in
@@ -46,32 +40,12 @@ src/org/olap4j/driver/xmla/XmlaOlap4jDriverVersion.java" />
 
     <target name="checkJdkVersion" unless="jdk18.present">
       <fail message="The 'jar' target (and dependent targets 'dist', 'binzip')
-                     must be run under JDK 1.7." />
+                     must be run under JDK 1.8." />
     </target>
-
-    <condition property="jdk15.present">
-        <contains string="${java.version}" substring="1.5." />
-    </condition>
-
-    <condition property="jdk16.present">
-        <contains string="${java.version}" substring="1.6." />
-    </condition>
-
-    <condition property="jdk17.present">
-        <contains string="${java.version}" substring="1.7." />
-    </condition>
 
     <condition property="jdk18.present">
         <contains string="${java.version}" substring="1.8." />
     </condition>
-
-    <path id="project.bootclasspath.jdk15">
-      <pathelement location="${testlib.dir}/rt-jdk1.5.jar"/>
-    </path>
-
-    <path id="project.bootclasspath.jdk16">
-      <pathelement location="${testlib.dir}/rt-java6.jar"/>
-    </path>
 
     <condition property="init.foodmart">
         <not>
@@ -82,10 +56,10 @@ src/org/olap4j/driver/xmla/XmlaOlap4jDriverVersion.java" />
     <target name="setup" depends="version-properties,compile,create-dot-classpath"
         description="Setups the project for eclipse." />
 
-    <target name="hudson" depends="clean-all,clean-tests,version-properties,jar,source.jar,tck-jar,xmla-jar,test,jar-jdk14"
+    <target name="hudson" depends="clean-all,clean-tests,version-properties,jar,source.jar,tck-jar,xmla-jar,test"
         description="Sugar goal to build olap4j from hudson." />
 
-    <target name="hudson-notest" depends="clean-all,clean-tests,version-properties,jar,source.jar,tck-jar,xmla-jar,jar-jdk14"
+    <target name="hudson-notest" depends="clean-all,clean-tests,version-properties,jar,source.jar,tck-jar,xmla-jar"
             description="Sugar goal to build olap4j from hudson." />
 
     <target name="clean" depends="subfloor.clean, clean-generated, clean-foodmart"/>
@@ -101,7 +75,7 @@ src/org/olap4j/driver/xmla/XmlaOlap4jDriverVersion.java" />
     <target name="dist" depends="all"/>
 
     <target name="all"
-        depends="clean,version-properties,jar,source.jar,tck-jar,xmla-jar,javadoc,javadoc-pdf,jar-jdk14,source.zip"
+        depends="clean,version-properties,jar,source.jar,tck-jar,xmla-jar,javadoc,javadoc-pdf,source.zip"
         description="Creates a distribution">
         <zip zipfile="${dist.dir}/${zip.filename}">
             <zipfileset dir="${basedir}" prefix="${ivy.artifact.id}-${project.revision}"
@@ -145,7 +119,7 @@ olap4j_api.pdf"
     </target>
 
     <target name="compile"
-        depends="init, compile.pre, compileJdk15, compileJdk16, compileJdk17, compile.src_copy, compile.res_copy, compile.lic_copy, compile.post"
+        depends="init, compile.pre, compileJdk18, compile.src_copy, compile.res_copy, compile.lic_copy, compile.post"
         description="Performs all the steps to prepare the bin directory with a complete compilation" />
 
     <target name="jar" depends="checkJdkVersion, compile, set-build.id, generate.manifest"
@@ -195,44 +169,7 @@ META-INF/**"/>
         <!--</zip>-->
     </target>
 
-    <target name="compileJdk15">
-      <javac
-          destdir="${classes.dir}"
-          debug="${javac.debug}"
-          deprecation="${javac.deprecation}"
-          fork="true"
-          source="1.8"
-          target="1.8"
-          includeantruntime="false">
-        <classpath>
-          <path refid="classpath" />
-        </classpath>
-        <src path="${src.dir}" />
-        <exclude name="org/olap4j/driver/xmla/FactoryJdbc4Impl.java"/>
-        <exclude name="org/olap4j/driver/xmla/FactoryJdbc4Plus.java"/>
-        <exclude name="org/olap4j/driver/xmla/FactoryJdbc41Impl.java"/>
-      </javac>
-    </target>
-
-    <target name="compileJdk16">
-      <javac
-          destdir="${classes.dir}"
-          debug="${javac.debug}"
-          deprecation="${javac.deprecation}"
-          fork="true"
-          source="1.8"
-          target="1.8"
-          includeantruntime="false">
-        <classpath>
-          <path refid="classpath" />
-        </classpath>
-        <src path="${src.dir}" />
-        <include name="org/olap4j/driver/xmla/FactoryJdbc4Impl.java"/>
-        <include name="org/olap4j/driver/xmla/FactoryJdbc4Plus.java"/>
-      </javac>
-    </target>
-
-    <target name="compileJdk17">
+    <target name="compileJdk18">
       <javac
           destdir="${classes.dir}"
           debug="${javac.debug}"
@@ -276,7 +213,6 @@ checkFile.awk,
 ivy.xml,
 ivy-xmla.xml,
 ivy-tck.xml,
-ivy-jdk14.xml,
 ivysettings.xml,
 subfloor.xml,
 test.properties" />
@@ -376,8 +312,6 @@ class XmlaOlap4jDriverVersion {
         <ivy:resolve file="ivy.xml" conf="codegen" />
         <ivy:retrieve conf="codegen" pattern="${testlib.dir}/[module](-[classifier]).[ext]" />
 
-        <ivy:resolve file="ivy-jdk14.xml" conf="default" />
-        <ivy:deliver conf="default" deliverpattern="${bin.dir}/ivy-jdk14.xml" />
         <ivy:retrieve conf="default" pattern="${lib.dir}/[module](-[classifier]).[ext]" />
 
         <ivy:resolve file="ivy-xmla.xml" conf="default" />
@@ -407,9 +341,6 @@ class XmlaOlap4jDriverVersion {
             <mapping conf="test" scope="test"/>
             <mapping conf="test.transitive" scope="test"/>
         </ivy:makepom>
-        <ivy:makepom ivyfile="${bin.dir}/ivy-jdk14.xml" pomfile="${bin.dir}/${ivy.artifact.id}-jdk14.pom">
-            <mapping conf="default" scope="compile"/>
-        </ivy:makepom>
         <ivy:makepom ivyfile="${bin.dir}/ivy-xmla.xml" pomfile="${bin.dir}/${ivy.artifact.id}-xmla.pom">
             <mapping conf="default" scope="compile"/>
             <mapping conf="default.transitive" scope="compile"/>
@@ -427,37 +358,6 @@ class XmlaOlap4jDriverVersion {
                 <include name="META-INF/**" />
             </fileset>
         </copy>
-    </target>
-
-    <!-- create a retrowoven jar file which will work under jdk1.4 -->
-    <target name="jar-jdk14">
-        <copy todir="${classes-jdk14.dir}">
-            <fileset dir="${classes.dir}"
-                includes="**/*"/>
-        </copy>
-        <antcall target="retroweave"/>
-        <zip zipfile="${jar-jdk14.file}" update="true">
-            <zipfileset dir="${classes-jdk14.dir}"
-                includes="
-**/*.class,
-**/*.properties,
-**/*.xml"/>
-        </zip>
-        <delete includeemptydirs="true">
-            <fileset dir="${classes-jdk14.dir}" includes="**/*"/>
-        </delete>
-    </target>
-
-    <target name="retroweave">
-        <taskdef name="retroweaver" classname="com.rc.retroweaver.ant.RetroWeaverTask">
-            <classpath>
-                <pathelement location="${lib.dir}/asm.jar" />
-                <pathelement location="${lib.dir}/asm-commons.jar" />
-                <pathelement location="${lib.dir}/retroweaver.jar" />
-                <pathelement location="${lib.dir}/retroweaver-rt.jar" />
-            </classpath>
-        </taskdef>
-        <retroweaver srcdir="${classes-jdk14.dir}" />
     </target>
 
     <!--
@@ -510,17 +410,6 @@ class XmlaOlap4jDriverVersion {
               <param name="publish.pomFile" value="${bin.dir}/${ivy.artifact.id}-xmla.pom" />
               <param name="publish.file" value="${dist.dir}/${ivy.artifact.id}-xmla-${project.revision}.jar" />
             </antcall>
-
-            <antcall target="maven-publish-dependencies">
-                <param name="publish.groupId" value="${ivy.artifact.group}" />
-                <param name="publish.artifactId" value="${ivy.artifact.id}-jdk14" />
-                <param name="publish.version" value="${project.revision}" />
-                <param name="publish.file" value="${bin.dir}/ivy-jdk14.xml" />
-            </antcall>
-            <antcall target="maven-publish-artifact">
-              <param name="publish.pomFile" value="${bin.dir}/${ivy.artifact.id}-jdk14.pom" />
-              <param name="publish.file" value="${jar-jdk14.file}" />
-            </antcall>
         </sequential>
     </target>
 
@@ -532,7 +421,7 @@ class XmlaOlap4jDriverVersion {
             excludepackagenames="org.olap4j.impl.*,org.olap4j.mdx.parser.impl.*,org.olap4j.sample.*"
             overview="${src.dir}/overview.html"
             footer="&lt;a href=&quot;http://sourceforge.net/projects/olap4j&quot;&gt;&lt;img src=&quot;http://sourceforge.net/sflogo.php?group_id=168953&#38;type=1&quot; width=&quot;88&quot; height=&quot;31&quot; border=&quot;0&quot; alt=&quot;SourceForge.net_Logo&quot;&gt;&lt;/a&gt;"
-            author="true" source="1.5" access="public"
+            author="true" source="1.8" access="public"
             Windowtitle="olap4j, version ${project.revision}" additionalparam="-linksource">
             <tag name="pre" description="Pre-condition:" scope="constructors,methods" />
             <tag name="post" description="Post-condition:" scope="constructors,methods" />
@@ -551,7 +440,7 @@ class XmlaOlap4jDriverVersion {
         <javadoc sourcepath="${src.dir}:${testsrc.dir}" classpathref="test.classpath"
             destdir="${javadoc.dir}" packagenames="org.olap4j.*" overview="${src.dir}/overview.html"
             footer="&lt;a href=&quot;http://sourceforge.net/projects/olap4j&quot;&gt;&lt;img src=&quot;http://sourceforge.net/sflogo.php?group_id=168953&#38;type=1&quot; width=&quot;88&quot; height=&quot;31&quot; border=&quot;0&quot; alt=&quot;SourceForge.net_Logo&quot;&gt;&lt;/a&gt;"
-            author="true" source="1.5" access="private"
+            author="true" source="1.8" access="private"
             Windowtitle="olap4j, version ${project.revision}">
             <tag name="pre" description="Pre-condition:" scope="constructors,methods" />
             <tag name="post" description="Post-condition:" scope="constructors,methods" />
@@ -575,7 +464,7 @@ class XmlaOlap4jDriverVersion {
             excludepackagenames="org.olap4j.impl.*,org.olap4j.mdx.parser.impl.*,org.olap4j.sample.*"
             overview="${src.dir}/overview.html"
             footer="&lt;a href=&quot;http://sourceforge.net/projects/olap4j&quot;&gt;&lt;img src=&quot;http://sourceforge.net/sflogo.php?group_id=168953&#38;type=1&quot; width=&quot;88&quot; height=&quot;31&quot; border=&quot;0&quot; alt=&quot;SourceForge.net_Logo&quot;&gt;&lt;/a&gt;"
-            author="true" source="1.5" access="public"
+            author="true" source="1.8" access="public"
             Windowtitle="olap4j, version ${project.revision}" additionalparam="-linksource">
             <tag name="pre" description="Pre-condition:" scope="constructors,methods" />
             <tag name="post" description="Post-condition:" scope="constructors,methods" />
@@ -602,7 +491,7 @@ class XmlaOlap4jDriverVersion {
         <javadoc sourcepath="${src.dir}" classpathref="javadoc.classpath"
             packagenames="org.olap4j.*"
             excludepackagenames="org.olap4j.impl.*,org.olap4j.mdx.parser.impl.*,org.olap4j.sample.*"
-            overview="${src.dir}/overview.html" author="true" source="1.5"
+            overview="${src.dir}/overview.html" author="true" source="1.8"
             access="public">
             <doclet name="com.tarsec.javadoc.pdfdoclet.PDFDoclet" path="${testlib.dir}/pdfdoclet.jar">
                 <param name="-pdf" value="${basedir}/doc/olap4j_api.pdf" />
