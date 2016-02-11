@@ -296,7 +296,7 @@ abstract class XmlaOlap4jResultSet implements ResultSet {
     }
 
     public boolean getBoolean(int columnIndex) throws SQLException {
-        throw new UnsupportedOperationException();
+        return (boolean)getObject(columnIndex);
     }
 
     public byte getByte(int columnIndex) throws SQLException {
@@ -368,7 +368,7 @@ abstract class XmlaOlap4jResultSet implements ResultSet {
     }
 
     public boolean getBoolean(String columnLabel) throws SQLException {
-        throw new UnsupportedOperationException();
+        return getBoolean(findColumn(columnLabel));
     }
 
     public byte getByte(String columnLabel) throws SQLException {
