@@ -28,12 +28,16 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
+import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE;
+import static java.time.format.DateTimeFormatter.ISO_LOCAL_TIME;
 import static org.olap4j.driver.xmla.XmlaOlap4jUtil.MDDATASET_NS;
 import static org.olap4j.driver.xmla.XmlaOlap4jUtil.SOAP_NS;
 import static org.olap4j.driver.xmla.XmlaOlap4jUtil.XMLA_NS;
@@ -42,6 +46,13 @@ import static org.olap4j.driver.xmla.XmlaOlap4jUtil.parse;
 
 abstract class XmlaOlap4jResultSet implements ResultSet {
     private static final String VALUE_TAG = "Value";
+    private final static DateTimeFormatter LENIENT_ISO_LOCAL_DATE_TIME = new DateTimeFormatterBuilder()
+    .parseCaseInsensitive()
+    .parseLenient()
+    .append(ISO_LOCAL_DATE)
+    .appendLiteral('T')
+    .append(ISO_LOCAL_TIME)
+    .toFormatter();
 
     private static final boolean DEBUG = false;
 
@@ -267,7 +278,7 @@ abstract class XmlaOlap4jResultSet implements ResultSet {
                 case XSD_DATETIME:
                     String text = XmlaOlap4jUtil.stringElement(row, name);
                     if(text == null) return null;
-                    return Date.from(LocalDateTime.parse(text).toInstant(ZoneOffset.UTC));
+                    return Date.from(LocalDateTime.parse(text, LENIENT_ISO_LOCAL_DATE_TIME).toInstant(ZoneOffset.UTC));
                 default:
                     return XmlaOlap4jUtil.stringElement(row, name);
             }
