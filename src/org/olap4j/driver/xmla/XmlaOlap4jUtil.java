@@ -313,11 +313,13 @@ abstract class XmlaOlap4jUtil {
     }
 
     static Double doubleElement(Element row, String name) {
-        return Double.valueOf(stringElement(row, name));
+        String s = stringElement(row, name);
+        return s == null || s.isEmpty() ? null : Double.valueOf(s);
     }
 
     static BigDecimal bigDecimalElement(Element row, String name) {
-        return new BigDecimal(stringElement(row, name));
+        String s = stringElement(row, name);
+        return s == null || s.isEmpty() ? null : new BigDecimal(s);
     }
 
     static boolean booleanElement(Element row, String name) {
@@ -325,15 +327,17 @@ abstract class XmlaOlap4jUtil {
     }
 
     static Float floatElement(Element row, String name) {
-        return Float.valueOf(stringElement(row, name));
+        String s = stringElement(row, name);
+        return s == null || s.isEmpty() ? null : Float.valueOf(s);
     }
 
     static long longElement(Element row, String name) {
-        return Long.valueOf(stringElement(row, name)).longValue();
+        return Long.parseLong(stringElement(row, name));
     }
 
-    static Object bigIntegerElement(Element row, String name) {
-        return new BigInteger(stringElement(row, name));
+    static BigInteger bigIntegerElement(Element row, String name) {
+        String s = stringElement(row, name);
+        return s == null || s.isEmpty() ? null : new BigInteger(s);
     }
 
     static List<Element> childElements(Element memberNode) {
