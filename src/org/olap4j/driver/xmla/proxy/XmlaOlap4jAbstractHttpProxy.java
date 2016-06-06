@@ -17,12 +17,15 @@
 */
 package org.olap4j.driver.xmla.proxy;
 
+import org.eclipse.jetty.client.api.Request;
+import org.eclipse.jetty.client.api.Response;
 import org.olap4j.OlapException;
 import org.olap4j.driver.xmla.*;
 import org.olap4j.driver.xmla.cache.XmlaOlap4jCache;
 
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.concurrent.Future;
 
@@ -74,7 +77,7 @@ abstract class XmlaOlap4jAbstractHttpProxy
      * @param request Request string
      * @return Response
      */
-    public abstract byte[] getResponse(
+    public abstract ByteBuffer getResponse(
         XmlaOlap4jServerInfos serverInfos,
         String request)
             throws XmlaOlap4jProxyException;
@@ -87,7 +90,7 @@ abstract class XmlaOlap4jAbstractHttpProxy
      * @param request Request
      * @return Future object representing the submitted job
      */
-    public abstract Future<byte[]> getResponseViaSubmit(
+    public abstract Future<ByteBuffer> getResponseViaSubmit(
         XmlaOlap4jServerInfos serverInfos,
         String request);
 
@@ -96,7 +99,7 @@ abstract class XmlaOlap4jAbstractHttpProxy
      * @param urlConn The url connection to which we want the cookies
      * applied to.
      */
-    protected void useCookies(URLConnection urlConn) {
+    protected void useCookies(Request urlConn) {
         // Initializes the cookie manager
         this.initCookieManager();
         // Saves the current cookies
@@ -108,7 +111,7 @@ abstract class XmlaOlap4jAbstractHttpProxy
      * @param urlConn The url connection for which we want the cookies
      * saved for later use.
      */
-    protected void saveCookies(URLConnection urlConn) {
+    protected void saveCookies(Response urlConn) {
         // Initializes the cookie manager
         this.initCookieManager();
         // Saves the current cookies
@@ -155,12 +158,12 @@ abstract class XmlaOlap4jAbstractHttpProxy
     }
 
     // implement XmlaOlap4jProxy
-    public byte[] get(
+    public ByteBuffer get(
         XmlaOlap4jServerInfos serverInfos,
         String request)
         throws XmlaOlap4jProxyException
     {
-        byte[] response = null;
+        ByteBuffer response = null;
         // Tries to fetch from cache
         try {
             response =
@@ -206,7 +209,7 @@ abstract class XmlaOlap4jAbstractHttpProxy
      * @return either a response in a byte array or null
      * if the response is not in cache
      */
-    private byte[] getFromCache(final URL url, final byte[] request)
+    private ByteBuffer getFromCache(final URL url, final byte[] request)
             throws OlapException
     {
         return (this.cache != null)
@@ -221,7 +224,7 @@ abstract class XmlaOlap4jAbstractHttpProxy
      * @param request The SOAP request to cache
      * @param response The SOAP response to cache
      */
-    private void addToCache(URL url, byte[] request, byte[] response)
+    private void addToCache(URL url, byte[] request, ByteBuffer response)
             throws OlapException
     {
         if (this.cache != null) {
@@ -230,7 +233,7 @@ abstract class XmlaOlap4jAbstractHttpProxy
     }
 
     // implement XmlaOlap4jProxy
-    public Future<byte[]> submit(
+    public Future<ByteBuffer> submit(
         final XmlaOlap4jServerInfos serverInfos,
         final String request)
     {

@@ -20,6 +20,7 @@ package org.olap4j.driver.xmla.cache;
 import org.olap4j.OlapException;
 
 import java.net.URL;
+import java.nio.ByteBuffer;
 import java.util.Map;
 
 /**
@@ -53,7 +54,7 @@ public interface XmlaOlap4jCache {
      * @return The SOAP response, null if there are no corresponding
      * response in the cache.
      */
-    public byte[] get(
+    public ByteBuffer get(
         String id,
         URL url,
         byte[] request)
@@ -77,7 +78,7 @@ public interface XmlaOlap4jCache {
         String id,
         URL url,
         byte[] request,
-        byte[] response)
+        ByteBuffer response)
         throws OlapException;
 
     /**

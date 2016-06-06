@@ -20,6 +20,7 @@ package org.olap4j.driver.xmla.cache;
 import org.olap4j.impl.Olap4jUtil;
 
 import java.net.URL;
+import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -190,7 +191,7 @@ public class XmlaOlap4jNamedMemoryCache implements XmlaOlap4jCache {
 
 
     // implement XmlaOlap4jCache
-    public byte[] get(
+    public ByteBuffer get(
         String id,
         URL url,
         byte[] request)
@@ -214,7 +215,7 @@ public class XmlaOlap4jNamedMemoryCache implements XmlaOlap4jCache {
         String id,
         URL url,
         byte[] request,
-        byte[] response)
+        ByteBuffer response)
         throws XmlaOlap4jInvalidStateException
     {
         this.validateState();

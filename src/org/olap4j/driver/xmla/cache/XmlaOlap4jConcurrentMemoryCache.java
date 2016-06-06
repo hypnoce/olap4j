@@ -22,6 +22,7 @@ import org.olap4j.driver.xmla.cache.XmlaOlap4jNamedMemoryCache.Property;
 import org.olap4j.impl.Olap4jUtil;
 
 import java.net.URL;
+import java.nio.ByteBuffer;
 import java.util.Calendar;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -62,7 +63,7 @@ class XmlaOlap4jConcurrentMemoryCache {
      * <li>key -> String : SHA-1 encoding of the full URL</li>
      * </ul>
      */
-    private Map<String, XmlaOlap4jCacheElement> cacheEntries =
+    private final Map<String, XmlaOlap4jCacheElement> cacheEntries =
         new ConcurrentHashMap<String, XmlaOlap4jCacheElement>();
 
 
@@ -150,7 +151,7 @@ class XmlaOlap4jConcurrentMemoryCache {
         this.cacheTimeout = seconds;
     }
 
-    byte[] get(
+    ByteBuffer get(
         final URL url,
         final byte[] request)
     {
@@ -172,7 +173,7 @@ class XmlaOlap4jConcurrentMemoryCache {
 
             // Return a copy to prevent corruption
             return entry != null
-                ? new String(entry.getResponse()).getBytes()
+                ? entry.getResponse()
                 : null;
         }
     }
@@ -180,7 +181,7 @@ class XmlaOlap4jConcurrentMemoryCache {
     void put(
         final URL url,
         final byte[] request,
-        final byte[] response)
+        final ByteBuffer response)
     {
         // Take the cache for ourself
         synchronized (this.cacheEntries) {

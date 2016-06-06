@@ -52,11 +52,11 @@ public class XmlaCookieManagerTest extends TestCase {
 
         conn.connect();
 
-        manager.storeCookies(conn);
+//        manager.storeCookies(conn);
 
         conn = new UrlConnectionStub(new URL("http://example.com"));
 
-        manager.setCookies(conn);
+//        manager.setCookies(conn);
 
         assertEquals(sentCookieKey, conn.getInternalCookieKey());
         assertEquals(cookieValue, conn.getInternalCookieValue());

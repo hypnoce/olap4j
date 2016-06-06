@@ -11,6 +11,7 @@ import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
 import java.net.URL;
+import java.nio.ByteBuffer;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.Clob;
@@ -134,7 +135,7 @@ abstract class XmlaOlap4jResultSet implements ResultSet {
      * @throws OlapException on error
      */
     void populate() throws OlapException {
-        byte[] bytes = olap4jStatement.getBytes();
+        ByteBuffer bytes = olap4jStatement.getBytes();
 
         Document doc;
         try {

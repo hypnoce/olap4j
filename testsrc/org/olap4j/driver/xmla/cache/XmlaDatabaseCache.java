@@ -18,6 +18,8 @@
 package org.olap4j.driver.xmla.cache;
 
 import java.net.URL;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.Map;
 
@@ -120,7 +122,7 @@ public class XmlaDatabaseCache implements XmlaOlap4jCache {
         // no op
     }
 
-    public byte[] get(String id, URL url, byte[] request)
+    public ByteBuffer get(String id, URL url, byte[] request)
             throws XmlaOlap4jInvalidStateException
     {
         if (!Boolean.valueOf(Properties.PLAY.getValueOrDefault(props))) {
@@ -135,7 +137,7 @@ public class XmlaDatabaseCache implements XmlaOlap4jCache {
                 stm.execute();
                 ResultSet rs = stm.getResultSet();
                 if (rs.next()) {
-                    return rs.getString(2).getBytes();
+                    return ByteBuffer.wrap(rs.getString(2).getBytes());
                 } else {
                     return null;
                 }
@@ -147,7 +149,7 @@ public class XmlaDatabaseCache implements XmlaOlap4jCache {
         }
     }
 
-    public void put(String id, URL url, byte[] request, byte[] response)
+    public void put(String id, URL url, byte[] request, ByteBuffer response)
             throws XmlaOlap4jInvalidStateException
     {
         if (!Boolean.valueOf(Properties.RECORD.getValueOrDefault(props))) {
@@ -159,7 +161,7 @@ public class XmlaDatabaseCache implements XmlaOlap4jCache {
                     Properties.QUERY_INSERT.getValueOrDefault(props));
             try {
                 stm.setString(1, new String(request));
-                stm.setString(2, new String(response));
+                stm.setString(2, StandardCharsets.UTF_8.decode(response).toString());
                 stm.execute();
             } finally {
                 stm.close();

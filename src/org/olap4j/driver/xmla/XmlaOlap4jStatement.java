@@ -28,6 +28,7 @@ import org.olap4j.mdx.SelectNode;
 
 import javax.sql.RowSet;
 import java.io.StringWriter;
+import java.nio.ByteBuffer;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
@@ -38,6 +39,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
+
+import static org.olap4j.driver.xmla.XmlaOlap4jConnection.BackendFlavor.ESSBASE;
 
 /**
  * Implementation of {@link org.olap4j.OlapStatement}
@@ -58,7 +61,7 @@ abstract class XmlaOlap4jStatement implements OlapStatement {
     XmlaOlap4jResultSet openCellSet;
     private boolean canceled;
     int timeoutSeconds;
-    Future<byte []> future;
+    Future<ByteBuffer> future;
 
     // Tells this statement to cancel as soon as it starts.
     private boolean cancelEarly = false;
@@ -324,7 +327,7 @@ abstract class XmlaOlap4jStatement implements OlapStatement {
         final String propList = olap4jConnection.makeConnectionPropertyList();
 
         final String dataSourceInfo;
-        switch (BackendFlavor.getFlavor(olap4jConnection, true)) {
+        switch (XmlaOlap4jConnection.BackendFlavor.getFlavor(olap4jConnection, true)) {
         case ESSBASE:
             dataSourceInfo =
                 olap4jConnection.getOlapDatabase().getDataSourceInfo();
@@ -442,7 +445,7 @@ abstract class XmlaOlap4jStatement implements OlapStatement {
      * @throws OlapException if error occurred, or request timed out or
      * was canceled
      */
-    byte[] getBytes() throws OlapException {
+    ByteBuffer getBytes() throws OlapException {
         synchronized (this) {
             if (future == null) {
                 throw new IllegalArgumentException();

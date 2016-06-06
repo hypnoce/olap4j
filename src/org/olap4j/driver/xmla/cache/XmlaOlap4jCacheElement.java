@@ -17,6 +17,7 @@
 */
 package org.olap4j.driver.xmla.cache;
 
+import java.nio.ByteBuffer;
 import java.util.Calendar;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -43,7 +44,7 @@ class XmlaOlap4jCacheElement {
     /**
      * The cached SOAP response.
      */
-    private byte[] response = null;
+    private ByteBuffer response = null;
 
 
     /**
@@ -62,11 +63,13 @@ class XmlaOlap4jCacheElement {
         this.hitMeter.incrementAndGet();
     }
 
-    public byte[] getResponse() {
-        return response;
+    public ByteBuffer getResponse() {
+        response.reset();
+        return response.asReadOnlyBuffer();
     }
 
-    public void setResponse(byte[] response) {
+    public void setResponse(ByteBuffer response) {
+        response.mark();
         this.response = response;
     }
 

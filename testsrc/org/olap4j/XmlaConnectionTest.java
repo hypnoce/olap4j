@@ -28,6 +28,7 @@ import junit.framework.TestCase;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.ByteBuffer;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.Future;
@@ -46,7 +47,7 @@ public class XmlaConnectionTest extends TestCase {
     }
 
     static class XmlaOlap4jProxyMock implements XmlaOlap4jProxy {
-        public byte[] get(
+        public ByteBuffer get(
             XmlaOlap4jServerInfos serverInfos,
             String request)
         {
@@ -57,7 +58,7 @@ public class XmlaConnectionTest extends TestCase {
             return "UTF-8";
         }
 
-        public Future<byte[]> submit(
+        public Future<ByteBuffer> submit(
             XmlaOlap4jServerInfos serverInfos,
             String request)
         {
@@ -81,13 +82,13 @@ public class XmlaConnectionTest extends TestCase {
             this.proxy = proxy;
         }
 
-        public byte[] get(XmlaOlap4jServerInfos serverInfos, String request)
+        public ByteBuffer get(XmlaOlap4jServerInfos serverInfos, String request)
             throws XmlaOlap4jProxyException
         {
             return proxy.get(serverInfos, request);
         }
 
-        public Future<byte[]> submit(
+        public Future<ByteBuffer> submit(
             XmlaOlap4jServerInfos serverInfos,
             String request)
         {
@@ -178,7 +179,7 @@ public class XmlaConnectionTest extends TestCase {
             }
         }
 
-        public byte[] get(XmlaOlap4jServerInfos serverInfos, String request)
+        public ByteBuffer get(XmlaOlap4jServerInfos serverInfos, String request)
             throws XmlaOlap4jProxyException
         {
             this.checkup(request);
@@ -256,7 +257,7 @@ public class XmlaConnectionTest extends TestCase {
                 super(catalogNameUrls, urlString);
             }
             @Override
-            public byte[] get(
+            public ByteBuffer get(
                 XmlaOlap4jServerInfos serverInfos,
                 String request)
                 throws XmlaOlap4jProxyException
@@ -430,7 +431,7 @@ public class XmlaConnectionTest extends TestCase {
 
         private static int count = 0;
 
-        public byte[] get(
+        public ByteBuffer get(
             XmlaOlap4jServerInfos serverInfos,
             String request)
             throws XmlaOlap4jProxyException

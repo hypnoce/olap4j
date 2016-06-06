@@ -27,6 +27,7 @@ import org.xml.sax.*;
 
 import java.io.*;
 import java.math.*;
+import java.nio.ByteBuffer;
 import java.util.*;
 
 /**
@@ -71,10 +72,10 @@ abstract class XmlaOlap4jUtil {
      * Parse a stream into a Document (no validation).
      *
      */
-    static Document parse(byte[] in)
+    static Document parse(ByteBuffer in)
         throws SAXException, IOException
     {
-        InputSource source = new InputSource(new ByteArrayInputStream(in));
+        InputSource source = new InputSource(new XmlaOlap4jByteBufferInputStream(in));
 
         DOMParser parser = getParser(null, null, false);
         try {

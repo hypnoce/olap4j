@@ -25,6 +25,7 @@ import junit.framework.TestCase;
 import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.math.*;
+import java.nio.ByteBuffer;
 import java.sql.*;
 import java.util.*;
 
@@ -124,8 +125,8 @@ public class XmlaOlap4jCellSetTest extends TestCase {
             this.response = response;
         }
 
-        byte[] getBytes() throws OlapException {
-            return response.getBytes();
+        ByteBuffer getBytes() throws OlapException {
+            return ByteBuffer.wrap(response.getBytes());
         }
 
         public void closeOnCompletion() throws SQLException {

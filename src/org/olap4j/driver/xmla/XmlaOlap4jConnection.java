@@ -35,6 +35,7 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.ByteBuffer;
 import java.sql.*;
 import java.util.*;
 import java.util.Map.Entry;
@@ -994,7 +995,7 @@ abstract class XmlaOlap4jConnection implements OlapConnection {
      * @throws OlapException on error
      */
     Element executeMetadataRequest(String request) throws OlapException {
-        byte[] bytes;
+        ByteBuffer bytes;
         if (DEBUG) {
             System.out.println("********************************************");
             System.out.println("** SENDING REQUEST :");
@@ -1010,10 +1011,7 @@ abstract class XmlaOlap4jConnection implements OlapConnection {
         Document doc;
         try {
             doc = parse(bytes);
-        } catch (IOException e) {
-            throw getHelper().createException(
-                "error discovering metadata", e);
-        } catch (SAXException e) {
+        } catch (IOException | SAXException e) {
             throw getHelper().createException(
                 "error discovering metadata", e);
         }

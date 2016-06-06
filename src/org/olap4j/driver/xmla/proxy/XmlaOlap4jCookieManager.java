@@ -17,6 +17,10 @@
 */
 package org.olap4j.driver.xmla.proxy;
 
+import org.eclipse.jetty.client.api.Request;
+import org.eclipse.jetty.client.api.Response;
+
+import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
 import java.text.DateFormat;
@@ -91,9 +95,9 @@ class XmlaOlap4jCookieManager {
      * or IOException will be thrown
      * @throws java.io.IOException Thrown if <i>conn</i> is not open.
      */
-    public void storeCookies(URLConnection conn) {
+    public void storeCookies(Response conn) {
         // Determines the domain from where these cookies are being sent
-        String domain = getDomainFromHost(conn.getURL().getHost());
+        String domain = getDomainFromHost(conn.getRequest().getURI().getHost());
 
         Map domainStore; // Where we will store cookies for this domain
 
@@ -109,12 +113,11 @@ class XmlaOlap4jCookieManager {
 
         // OK, now we are ready to get the cookies out of the URLConnection
 
-        String headerName = null;
-        for (int i = 1; (headerName = conn.getHeaderFieldKey(i)) != null; i++) {
-            if (headerName.equalsIgnoreCase(SET_COOKIE)) {
+        for (int i = 0; i < conn.getHeaders().size() ; i++) {
+            if (conn.getHeaders().getField(i).getName().equalsIgnoreCase(SET_COOKIE)) {
                 Map cookie = new ConcurrentHashMap();
                 StringTokenizer st = new StringTokenizer(
-                    conn.getHeaderField(i), COOKIE_VALUE_DELIMITER);
+                    conn.getHeaders().getField(i).getValue(), COOKIE_VALUE_DELIMITER);
 
                 // the specification dictates that the first name/value pair
                 // in the string is the cookie name and value, so let's handle
@@ -183,9 +186,9 @@ class XmlaOlap4jCookieManager {
      * @throws java.io.IOException Thrown if <i>conn</i> has already been
      * opened.
      */
-    public void setCookies(URLConnection conn) {
+    public void setCookies(Request conn) {
         // Determines the domain and path to retrieve the appropriate cookies
-        URL url = conn.getURL();
+        URI url = conn.getURI();
         String domain = getDomainFromHost(url.getHost());
         String path = url.getPath();
 
@@ -219,7 +222,7 @@ class XmlaOlap4jCookieManager {
                 System.out.println(
                     "Using cookie : " + cookieStringBuffer.toString());
             }
-            conn.setRequestProperty(COOKIE, cookieStringBuffer.toString());
+            conn.header(COOKIE, cookieStringBuffer.toString());
         } catch (java.lang.IllegalStateException ise) {
             throw new RuntimeException(
                 "Illegal State! Cookies cannot be set on a URLConnection that is already connected. Only call setCookies(java.net.URLConnection) AFTER calling java.net.URLConnection.connect().");

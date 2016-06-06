@@ -19,6 +19,7 @@ package org.olap4j.driver.xmla.proxy;
 
 import org.olap4j.driver.xmla.XmlaOlap4jServerInfos;
 
+import java.nio.ByteBuffer;
 import java.util.concurrent.Future;
 
 /**
@@ -35,7 +36,7 @@ public interface XmlaOlap4jProxy {
      * @throws XmlaOlap4jProxyException If anything occurs during the
      * request execution.
      */
-    byte[] get(
+    ByteBuffer get(
         XmlaOlap4jServerInfos serverInfos,
         String request)
             throws XmlaOlap4jProxyException;
@@ -47,7 +48,7 @@ public interface XmlaOlap4jProxy {
      * @param request Request
      * @return Future object representing the submitted job
      */
-    Future<byte[]> submit(
+    Future<ByteBuffer> submit(
         XmlaOlap4jServerInfos serverInfos,
         String request);
 

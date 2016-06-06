@@ -21,6 +21,7 @@ import org.olap4j.driver.xmla.proxy.XmlaOlap4jHttpProxy;
 import org.olap4j.driver.xmla.proxy.XmlaOlap4jProxy;
 import org.olap4j.impl.Olap4jUtil;
 
+import java.nio.ByteBuffer;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.*;
@@ -315,14 +316,14 @@ public class XmlaOlap4jDriver implements Driver {
      * @return Future object from which the byte array containing the result
      * of the XMLA call can be obtained
      */
-    public static Future<byte[]> getFuture(
+    public static Future<ByteBuffer> getFuture(
         final XmlaOlap4jProxy proxy,
         final XmlaOlap4jServerInfos serverInfos,
         final String request)
     {
         return executor.submit(
-            new Callable<byte[]>() {
-                public byte[] call() throws Exception {
+            new Callable<ByteBuffer>() {
+                public ByteBuffer call() throws Exception {
                     return proxy.get(serverInfos, request);
                 }
             }
