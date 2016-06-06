@@ -53,6 +53,11 @@ public class XmlaOlap4jRowSet extends XmlaOlap4jResultSet implements RowSet {
     }
 
     @Override
+    public boolean isBeforeFirst() throws SQLException {
+        return cursor == 0 && !data.isEmpty();
+    }
+
+    @Override
     public String getUrl() throws SQLException {
         return null;
     }
