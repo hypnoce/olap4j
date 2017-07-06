@@ -838,7 +838,7 @@ abstract class XmlaOlap4jConnection implements OlapConnection {
      * @return URL
      */
     String getURL() {
-        throw Olap4jUtil.needToImplement(this);
+        return serverUrlObject.toExternalForm();
     }
 
     public void setLocale(Locale locale) {

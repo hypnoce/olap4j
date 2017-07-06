@@ -331,8 +331,9 @@ abstract class XmlaOlap4jUtil {
         return s == null || s.isEmpty() ? null : Float.valueOf(s);
     }
 
-    static long longElement(Element row, String name) {
-        return Long.parseLong(stringElement(row, name));
+    static Long longElement(Element row, String name) {
+        String s = stringElement(row, name);
+        return s == null || s.isEmpty() ? null : Long.parseLong(s);
     }
 
     static BigInteger bigIntegerElement(Element row, String name) {

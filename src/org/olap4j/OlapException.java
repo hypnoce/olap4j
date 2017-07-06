@@ -96,8 +96,7 @@ public class OlapException extends SQLException {
      * method); may be null indicating the cause is non-existent or unknown.
      */
     public OlapException(Throwable cause) {
-        super();
-        initCause(cause);
+        super(cause);
     }
 
     /**
@@ -112,10 +111,7 @@ public class OlapException extends SQLException {
      *         unknown.)
      */
     public OlapException(String reason, Throwable cause) {
-        // Cannot call super(reason, cause) because
-        // SQLException(String, Throwable) only exists from JDK 1.6.
-        super(reason);
-        initCause(cause);
+        super(reason, cause);
     }
 
     /**
@@ -131,10 +127,7 @@ public class OlapException extends SQLException {
      *     the cause is non-existent or unknown.
      */
     public OlapException(String reason, String sqlState, Throwable cause) {
-        // Cannot call SQLException(String, String, Throwable); it only
-        // exists from JDK 1.6
-        super(reason, sqlState);
-        initCause(cause);
+        super(reason, sqlState, cause);
     }
 
     /**
@@ -156,10 +149,7 @@ public class OlapException extends SQLException {
         int vendorCode,
         Throwable cause)
     {
-        // Cannot call SQLException(String, String, int, Throwable); it only
-        // exists from JDK 1.6
-        super(reason, sqlState, vendorCode);
-        initCause(cause);
+        super(reason, sqlState, vendorCode, cause);
     }
 
     /**

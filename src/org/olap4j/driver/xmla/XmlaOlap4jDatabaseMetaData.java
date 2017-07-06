@@ -17,6 +17,7 @@
 */
 package org.olap4j.driver.xmla;
 
+import org.apache.commons.collections.ArrayStack;
 import org.olap4j.*;
 import org.olap4j.impl.Olap4jUtil;
 import org.olap4j.metadata.Member;
@@ -24,9 +25,12 @@ import org.olap4j.metadata.XmlaConstants;
 
 import org.w3c.dom.Element;
 
+import java.sql.Connection;
+import java.sql.JDBCType;
 import java.sql.ResultSet;
 import java.sql.RowIdLifetime;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -754,7 +758,78 @@ abstract class XmlaOlap4jDatabaseMetaData implements OlapDatabaseMetaData {
         String tableNamePattern,
         String columnNamePattern) throws SQLException
     {
-        throw new UnsupportedOperationException();
+        final ResultSet metadata = this.getProperties(catalog, schemaPattern, null, tableNamePattern != null ? "[" + tableNamePattern + "]" : null, null, null, null, null);
+        List<List<Object>> rowList = new ArrayList<>();
+//        Pattern p = Pattern.compile("^\\[" + tableNamePattern + "\\]\\.\\[(.*)\\]$");
+        Pattern p = Pattern.compile("^\\[(.*)\\]\\.\\[(.*)\\]$");
+        while (metadata.next()) {
+            String uName = metadata.getString(6);
+            String pName = metadata.getString(8);
+            if (uName != null && !uName.endsWith(".[(All)]") && "MEMBER_VALUE".equals(pName)) {
+                Matcher m = p.matcher(metadata.getString(5));
+                if (m.matches()) {
+                    String colName = m.group(2);
+                    List<Object> row = new ArrayList<>();
+                    row.add(metadata.getObject(1)); //TABLE_CAT
+                    row.add(metadata.getObject(2)); //TABLE_SCHEM
+                    row.add(m.group(1)); //TABLE_NAME
+                    row.add(colName); //COLUMN_NAME
+                    row.add(metadata.getObject(11)); //DATA_TYPE
+                    row.add(null); //TYPE_NAME
+                    row.add(null); //COLUMN_SIZE
+                    row.add(null); //BUFFER_LENGTH
+                    row.add(null); //DECIMAL_DIGITS
+                    row.add(10); //NUM_PREC_RADIX
+                    row.add(false); //NULLABLE
+                    row.add(null); //REMARKS
+                    row.add(null); //COLUMN_DEF
+                    row.add(metadata.getObject(11)); //SQL_DATA_TYPE
+                    row.add(null); //SQL_DATETIME_SUB
+                    row.add(Integer.MAX_VALUE); //CHAR_OCTET_LENGTH
+                    row.add(-1); //ORDINAL_POSITION
+                    row.add(""); //IS_NULLABLE
+                    row.add(null); //SCOPE_CATALOG
+                    row.add(null); //SCOPE_SCHEMA
+                    row.add(null); //SCOPE_TABLE
+                    row.add(null); //SOURCE_DATA_TYPE
+                    row.add(""); //IS_AUTOINCREMENT
+                    row.add(""); //IS_GENERATEDCOLUMN
+                    rowList.add(row);
+                }
+            }
+        }
+        return olap4jConnection.factory.newFixedResultSet(
+                olap4jConnection, Arrays.asList(
+                        "TABLE_CAT",
+                        "TABLE_SCHEM",
+                        "TABLE_NAME",
+                        "COLUMN_NAME",
+                        "DATA_TYPE",
+                        "TYPE_NAME",
+                        "COLUMN_SIZE",
+                        "BUFFER_LENGTH",
+                        "DECIMAL_DIGITS",
+                        "NUM_PREC_RADIX",
+                        "NULLABLE",
+                        "REMARKS",
+                        "COLUMN_DEF",
+                        "SQL_DATA_TYPE",
+                        "SQL_DATETIME_SUB",
+                        "CHAR_OCTET_LENGTH",
+                        "ORDINAL_POSITION",
+                        "IS_NULLABLE",
+                        "SCOPE_CATALOG",
+                        "SCOPE_SCHEMA",
+                        "SCOPE_TABLE",
+                        "SOURCE_DATA_TYPE",
+                        "IS_AUTOINCREMENT",
+                        "IS_GENERATEDCOLUMN"), rowList);
+    }
+
+    public static void main(String[] args) throws SQLException {
+        final Connection connect = new XmlaOlap4jDriver().connect("jdbc:xmla:Server=http://rtbgui.fr.murex.com/olap/msmdpump.dll;Catalog=WebCamDev", new Properties());
+        final ResultSet engine_info_table = connect.getMetaData().getColumns(connect.getCatalog(), connect.getSchema(), "ENGINE_INFO_TABLE", null);
+        System.out.println();
     }
 
     public ResultSet getColumnPrivileges(

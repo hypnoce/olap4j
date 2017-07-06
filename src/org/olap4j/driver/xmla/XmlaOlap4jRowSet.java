@@ -53,11 +53,6 @@ public class XmlaOlap4jRowSet extends XmlaOlap4jResultSet implements RowSet {
     }
 
     @Override
-    public boolean isBeforeFirst() throws SQLException {
-        return cursor == -1 && !data.isEmpty();
-    }
-
-    @Override
     public String getUrl() throws SQLException {
         return null;
     }
@@ -107,7 +102,80 @@ public class XmlaOlap4jRowSet extends XmlaOlap4jResultSet implements RowSet {
 
     }
 
-    @Override
+   @Override
+   public boolean isBeforeFirst() throws SQLException {
+      return !data.isEmpty() && cursor == -1;
+   }
+
+   @Override
+   public boolean isAfterLast() throws SQLException {
+      return !data.isEmpty() && cursor == data.size();
+   }
+
+   @Override
+   public boolean isFirst() throws SQLException {
+      return !data.isEmpty() && cursor == 0;
+   }
+
+   @Override
+   public boolean isLast() throws SQLException {
+      return !data.isEmpty() && cursor == data.size() - 1;
+   }
+
+   @Override
+   public void beforeFirst() throws SQLException {
+      cursor = -1;
+   }
+
+   @Override
+   public void afterLast() throws SQLException {
+      if(!data.isEmpty())
+         cursor = data.size();
+   }
+
+   @Override
+   public boolean first() throws SQLException {
+      if(data.isEmpty()) {
+         return false;
+      }
+      cursor = 0;
+      return true;
+   }
+
+   @Override
+   public boolean last() throws SQLException {
+      cursor = data.size() - 1;
+      return cursor > -1 && cursor < data.size();
+   }
+
+   @Override
+   public int getRow() throws SQLException {
+      return cursor + 1;
+   }
+
+   @Override
+   public boolean absolute(int row) throws SQLException {
+      if(row < 0) {
+         cursor = Math.max(data.size() + row, -1);
+      } else {
+         cursor = Math.max(row - 1, -1);
+      }
+      return cursor > -1 && cursor < data.size();
+   }
+
+   @Override
+   public boolean relative(int rows) throws SQLException {
+      cursor += rows;
+      return cursor > -1 && cursor < data.size();
+   }
+
+   @Override
+   public boolean previous() throws SQLException {
+      cursor = Math.max(-1, cursor - 1);
+      return cursor == -1;
+   }
+
+   @Override
     public Map<String, Class<?>> getTypeMap() throws SQLException {
         return null;
     }
@@ -679,6 +747,7 @@ public class XmlaOlap4jRowSet extends XmlaOlap4jResultSet implements RowSet {
                 XsdTypes xsdType =  XsdTypes.fromString(type);
                 rowSetMetaData.setColumnType(i + 1, xsdType.getSqlType().getVendorTypeNumber());
                 rowSetMetaData.setColumnTypeName(i + 1, xsdType.getSqlType().getName());
+                rowSetMetaData.setSigned(i + 1, !xsdType.name().contains("unsigned"));
             }
         } catch (XPathExpressionException | SQLException e) {
             throw new OlapException(e);
@@ -697,7 +766,7 @@ public class XmlaOlap4jRowSet extends XmlaOlap4jResultSet implements RowSet {
 
     @Override
     public Object getObject(int columnIndex) throws SQLException {
-        return getTypedValue(data.get(cursor), getMetaData().getColumnName(columnIndex), XsdTypes.fromSQLType(getMetaData().getColumnType(columnIndex)));
+        return getTypedValue(data.get(cursor), getMetaData().getColumnName(columnIndex), XsdTypes.fromSQLType(getMetaData().getColumnType(columnIndex), getMetaData().isSigned(columnIndex)));
     }
 
     @Override
