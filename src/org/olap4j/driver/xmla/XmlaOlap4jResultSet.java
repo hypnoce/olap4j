@@ -77,13 +77,13 @@ abstract class XmlaOlap4jResultSet implements ResultSet {
         private final String name;
         private final JDBCType sqlType;
         private static final Map<String, XsdTypes> TYPES;
-        private static final Map<Integer, XsdTypes> SQL_TYPES;
+        private static final Map<SignedType, XsdTypes> SQL_TYPES;
         static {
-            Map typesInitial = new HashMap<String, XsdTypes>();
-            Map sqlTypesInitial = new HashMap<Integer, XsdTypes>();
+            Map<String, XsdTypes> typesInitial = new HashMap<>();
+            Map<SignedType, XsdTypes> sqlTypesInitial = new HashMap<>();
             for (XsdTypes type : values()) {
                 typesInitial.put(type.name, type);
-                sqlTypesInitial.put(type.getSqlType().getVendorTypeNumber(), type);
+                sqlTypesInitial.put(new SignedType(type.getSqlType().getVendorTypeNumber(), !type.name.contains("unsigned")), type);
             }
             TYPES = Collections.unmodifiableMap(typesInitial);
             SQL_TYPES = Collections.unmodifiableMap(sqlTypesInitial);
@@ -99,14 +99,42 @@ abstract class XmlaOlap4jResultSet implements ResultSet {
             return type == null ? XSD_STRING : type;
         }
 
-        public static XsdTypes fromSQLType(int sqlType) {
-            XsdTypes type = SQL_TYPES.get(sqlType);
+        public static XsdTypes fromSQLType(int sqlType, boolean signed) {
+            XsdTypes type = SQL_TYPES.get(new SignedType(sqlType, signed));
             return type == null ? XSD_STRING : type;
         }
 
         public JDBCType getSqlType() {
             return sqlType;
         }
+    }
+
+    private static class SignedType {
+       private final int sqlVendorType;
+       private final boolean signed;
+
+       private SignedType(int sqlVendorType, boolean signed) {
+          this.sqlVendorType = sqlVendorType;
+          this.signed = signed;
+       }
+
+       @Override
+       public boolean equals(Object o) {
+          if (this == o) {
+             return true;
+          }
+          if (o == null || getClass() != o.getClass()) {
+             return false;
+          }
+          SignedType that = (SignedType) o;
+          return sqlVendorType == that.sqlVendorType &&
+            signed == that.signed;
+       }
+
+       @Override
+       public int hashCode() {
+          return Objects.hash(sqlVendorType, signed);
+       }
     }
 
     final XmlaOlap4jStatement olap4jStatement;
