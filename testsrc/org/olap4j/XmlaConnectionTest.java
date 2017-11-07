@@ -26,6 +26,7 @@ import org.olap4j.test.TestContext.Tester;
 
 import junit.framework.TestCase;
 
+import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.sql.*;
@@ -63,6 +64,11 @@ public class XmlaConnectionTest extends TestCase {
         {
             throw new RuntimeException("Non-Trivial Call!");
         }
+
+        @Override
+        public void close() throws IOException {
+            throw new RuntimeException("Non-Trivial Call!");
+        }
     }
 
     /**
@@ -89,13 +95,17 @@ public class XmlaConnectionTest extends TestCase {
 
         public Future<byte[]> submit(
             XmlaOlap4jServerInfos serverInfos,
-            String request)
-        {
+            String request) throws XmlaOlap4jProxyException {
             return proxy.submit(serverInfos, request);
         }
 
         public String getEncodingCharsetName() {
             return proxy.getEncodingCharsetName();
+        }
+
+        @Override
+        public void close() throws IOException {
+            proxy.close();
         }
     }
 

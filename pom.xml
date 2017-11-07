@@ -111,7 +111,7 @@
     <ph-javacc-maven-plugin.version>2.8.0</ph-javacc-maven-plugin.version>
     <servlet-api.version>2.4</servlet-api.version>
     <sortpom-maven-plugin.version>2.4.0</sortpom-maven-plugin.version>
-    <xerces.version>2.6.2</xerces.version>
+    <xerces.version>2.11.0</xerces.version>
   </properties>
 
   <!-- Dependencies. -->
@@ -212,6 +212,22 @@
       <artifactId>mondrian-data-foodmart</artifactId>
       <version>${mondrian-data-foodmart.version}</version>
     </dependency>
+      <dependency>
+          <groupId>javax.ws.rs</groupId>
+          <artifactId>javax.ws.rs-api</artifactId>
+          <version>2.1</version>
+          <scope>provided</scope>
+      </dependency>
+      <!--<dependency>-->
+          <!--<groupId>org.eclipse.jetty</groupId>-->
+          <!--<artifactId>jetty-client</artifactId>-->
+          <!--<version>${jetty.version}</version>-->
+      <!--</dependency>-->
+      <!--<dependency>-->
+          <!--<groupId>org.simpleframework</groupId>-->
+          <!--<artifactId>simple-xml</artifactId>-->
+          <!--<version>2.7.1</version>-->
+      <!--</dependency>-->
   </dependencies>
 
   <repositories>
@@ -379,71 +395,88 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
         <executions>
-          <execution>
-            <id>compile-jdk15</id>
-            <goals>
-              <goal>compile</goal>
-            </goals>
-            <configuration>
-              <excludes>
-                <exclude>org/olap4j/driver/xmla/FactoryJdbc4Impl.java</exclude>
-                <exclude>org/olap4j/driver/xmla/FactoryJdbc4Plus.java</exclude>
-                <exclude>org/olap4j/driver/xmla/FactoryJdbc41Impl.java</exclude>
-              </excludes>
-              <includes>
-                <include>org/olap4j/driver/xmla/FactoryJdbc3Impl.java</include>
-              </includes>
-              <compilerArguments>
-                <verbose />
-                <bootclasspath>${com.sun:rt-jdk1.5:jar}</bootclasspath>
-              </compilerArguments>
-            </configuration>
-          </execution>
-          <execution>
-            <id>compile-jdk16</id>
-            <goals>
-              <goal>compile</goal>
-            </goals>
-            <configuration>
-              <excludes>
-                <exclude>org/olap4j/driver/xmla/FactoryJdbc3Impl.java</exclude>
-              </excludes>
-              <includes>
-                <include>org/olap4j/driver/xmla/FactoryJdbc4Impl.java</include>
-                <include>org/olap4j/driver/xmla/FactoryJdbc4Plus.java</include>
-                <include>org/olap4j/driver/xmla/FactoryJdbc41Impl.java</include>
-              </includes>
-              <compilerArguments>
-                <verbose />
-                <bootclasspath>${net.java.openjdk:rt-java6:jar}</bootclasspath>
-              </compilerArguments>
-            </configuration>
-          </execution>
-          <execution>
-            <id>compile-jdk17</id>
-            <goals>
-              <goal>compile</goal>
-            </goals>
-            <configuration>
-              <includes>
-                <include>org/olap4j/driver/xmla/FactoryJdbc4Impl.java</include>
-                <include>org/olap4j/driver/xmla/FactoryJdbc4Plus.java</include>
-                <include>org/olap4j/driver/xmla/FactoryJdbc41Impl.java</include>
-              </includes>
-              <compilerArguments>
-                <verbose />
-                <bootclasspath>${net.java.openjdk:rt-java7:jar}</bootclasspath>
-              </compilerArguments>
-            </configuration>
-          </execution>
+          <!--<execution>-->
+            <!--<id>compile-jdk15</id>-->
+            <!--<goals>-->
+              <!--<goal>compile</goal>-->
+            <!--</goals>-->
+            <!--<configuration>-->
+              <!--<excludes>-->
+                <!--<exclude>org/olap4j/driver/xmla/FactoryJdbc4Impl.java</exclude>-->
+                <!--<exclude>org/olap4j/driver/xmla/FactoryJdbc4Plus.java</exclude>-->
+                <!--<exclude>org/olap4j/driver/xmla/FactoryJdbc41Impl.java</exclude>-->
+              <!--</excludes>-->
+              <!--<includes>-->
+                <!--<include>org/olap4j/driver/xmla/FactoryJdbc3Impl.java</include>-->
+              <!--</includes>-->
+              <!--<compilerArguments>-->
+                <!--<verbose />-->
+                <!--<bootclasspath>${com.sun:rt-jdk1.5:jar}</bootclasspath>-->
+              <!--</compilerArguments>-->
+            <!--</configuration>-->
+          <!--</execution>-->
+          <!--<execution>-->
+            <!--<id>compile-jdk16</id>-->
+            <!--<goals>-->
+              <!--<goal>compile</goal>-->
+            <!--</goals>-->
+            <!--<configuration>-->
+              <!--<excludes>-->
+                <!--<exclude>org/olap4j/driver/xmla/FactoryJdbc3Impl.java</exclude>-->
+              <!--</excludes>-->
+              <!--<includes>-->
+                <!--<include>org/olap4j/driver/xmla/FactoryJdbc4Impl.java</include>-->
+                <!--<include>org/olap4j/driver/xmla/FactoryJdbc4Plus.java</include>-->
+                <!--<include>org/olap4j/driver/xmla/FactoryJdbc41Impl.java</include>-->
+              <!--</includes>-->
+              <!--<compilerArguments>-->
+                <!--<verbose />-->
+                <!--<bootclasspath>${net.java.openjdk:rt-java6:jar}</bootclasspath>-->
+              <!--</compilerArguments>-->
+            <!--</configuration>-->
+          <!--</execution>-->
+          <!--<execution>-->
+            <!--<id>compile-jdk17</id>-->
+            <!--<goals>-->
+              <!--<goal>compile</goal>-->
+            <!--</goals>-->
+            <!--<configuration>-->
+              <!--<includes>-->
+                <!--<include>org/olap4j/driver/xmla/FactoryJdbc4Impl.java</include>-->
+                <!--<include>org/olap4j/driver/xmla/FactoryJdbc4Plus.java</include>-->
+                <!--<include>org/olap4j/driver/xmla/FactoryJdbc41Impl.java</include>-->
+              <!--</includes>-->
+              <!--<compilerArguments>-->
+                <!--<verbose />-->
+                <!--<bootclasspath>${net.java.openjdk:rt-java7:jar}</bootclasspath>-->
+              <!--</compilerArguments>-->
+            <!--</configuration>-->
+          <!--</execution>-->
+
+            <execution>
+                <id>compile-jdk18</id>
+                <goals>
+                    <goal>compile</goal>
+                </goals>
+                <configuration>
+                    <includes>
+                        <include>org/olap4j/driver/xmla/FactoryJdbc4Impl.java</include>
+                        <include>org/olap4j/driver/xmla/FactoryJdbc4Plus.java</include>
+                        <include>org/olap4j/driver/xmla/FactoryJdbc41Impl.java</include>
+                    </includes>
+                    <compilerArguments>
+                        <verbose />
+                    </compilerArguments>
+                </configuration>
+            </execution>
         </executions>
         <configuration>
-          <source>1.5</source>
-          <target>1.5</target>
+          <source>1.8</source>
+          <target>1.8</target>
           <excludes>
             <exclude>org/olap4j/driver/xmla/FactoryJdbc4Impl.java</exclude>
             <exclude>org/olap4j/driver/xmla/FactoryJdbc4Plus.java</exclude>
-            <exclude>org/olap4j/driver/xmla/FactoryJdbc41Impl.java</exclude>
+            <!--<exclude>org/olap4j/driver/xmla/FactoryJdbc41Impl.java</exclude>-->
             <exclude>org/olap4j/driver/xmla/FactoryJdbc3Impl.java</exclude>
           </excludes>
         </configuration>
@@ -451,7 +484,9 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <configuration />
+        <configuration >
+            <skip>true</skip>
+        </configuration>
       </plugin>
       <plugin>
         <groupId>com.google.code.maven-replacer-plugin</groupId>

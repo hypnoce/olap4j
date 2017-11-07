@@ -19,12 +19,13 @@ package org.olap4j.driver.xmla.proxy;
 
 import org.olap4j.driver.xmla.XmlaOlap4jServerInfos;
 
+import java.io.Closeable;
 import java.util.concurrent.Future;
 
 /**
  * Defines a common set of methods for proxy objects.
  */
-public interface XmlaOlap4jProxy {
+public interface XmlaOlap4jProxy extends Closeable {
     /**
      * Sends a request to a URL and returns the response.
      *
@@ -49,7 +50,7 @@ public interface XmlaOlap4jProxy {
      */
     Future<byte[]> submit(
         XmlaOlap4jServerInfos serverInfos,
-        String request);
+        String request) throws XmlaOlap4jProxyException;
 
     /**
      * Returns the name of the character set use for encoding the XML

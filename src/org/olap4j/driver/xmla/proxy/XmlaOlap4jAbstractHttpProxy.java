@@ -89,7 +89,7 @@ abstract class XmlaOlap4jAbstractHttpProxy
      */
     public abstract Future<byte[]> getResponseViaSubmit(
         XmlaOlap4jServerInfos serverInfos,
-        String request);
+        String request) throws XmlaOlap4jProxyException;
 
     /**
      * Helper method to add cookies to a given connection.
@@ -232,8 +232,7 @@ abstract class XmlaOlap4jAbstractHttpProxy
     // implement XmlaOlap4jProxy
     public Future<byte[]> submit(
         final XmlaOlap4jServerInfos serverInfos,
-        final String request)
-    {
+        final String request) throws XmlaOlap4jProxyException {
         // The submit operation doesn't need to be cached yet, since it will
         // call the get operation to fetch the data later on. It will get cached
         // then.

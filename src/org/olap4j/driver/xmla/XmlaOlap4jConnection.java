@@ -137,6 +137,8 @@ abstract class XmlaOlap4jConnection implements OlapConnection {
 
     private final URL serverUrlObject;
 
+    private final String jdbcConnectionString;
+
     private HashSet<String> olap4jDatabaseProperties = null;
 
     /**
@@ -188,6 +190,7 @@ abstract class XmlaOlap4jConnection implements OlapConnection {
         this.factory = factory;
         this.driver = driver;
         this.proxy = proxy;
+        this.jdbcConnectionString = url;
 
         final Map<String, String> map = parseConnectString(url, info);
 
@@ -433,6 +436,11 @@ abstract class XmlaOlap4jConnection implements OlapConnection {
     }
 
     public void close() throws SQLException {
+        try {
+            this.proxy.close();
+        } catch (IOException e) {
+            throw new SQLException(e);
+        }
         closed = true;
     }
 
@@ -838,7 +846,7 @@ abstract class XmlaOlap4jConnection implements OlapConnection {
      * @return URL
      */
     String getURL() {
-        return serverUrlObject.toExternalForm();
+        return jdbcConnectionString;
     }
 
     public void setLocale(Locale locale) {

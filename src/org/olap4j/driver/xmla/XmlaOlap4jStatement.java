@@ -22,6 +22,7 @@ import org.olap4j.CellSetListener;
 import org.olap4j.OlapConnection;
 import org.olap4j.OlapException;
 import org.olap4j.OlapStatement;
+import org.olap4j.driver.xmla.proxy.XmlaOlap4jProxyException;
 import org.olap4j.mdx.ParseTreeNode;
 import org.olap4j.mdx.ParseTreeWriter;
 import org.olap4j.mdx.SelectNode;
@@ -309,16 +310,20 @@ abstract class XmlaOlap4jStatement implements OlapStatement {
 
     // implement OlapStatement
     public CellSet executeOlapQuery(String mdx) throws OlapException {
-        return (CellSet) executeOlapQuery(mdx, (olap4jStatement) -> {
-            try {
-                return olap4jConnection.factory.newCellSet(olap4jStatement);
-            } catch (OlapException e) {
-                throw new RuntimeException(e);
-            }
-        });
+       try {
+          return (CellSet) executeOlapQuery(mdx, (olap4jStatement) -> {
+              try {
+                  return olap4jConnection.factory.newCellSet(olap4jStatement);
+              } catch (OlapException e) {
+                  throw new RuntimeException(e);
+              }
+          });
+       } catch (XmlaOlap4jProxyException e) {
+          throw new RuntimeException(e);
+       }
     }
 
-    public XmlaOlap4jResultSet executeOlapQuery(String query, Function<XmlaOlap4jStatement, XmlaOlap4jResultSet> resultSetProvider) throws OlapException {
+    public XmlaOlap4jResultSet executeOlapQuery(String query, Function<XmlaOlap4jStatement, XmlaOlap4jResultSet> resultSetProvider) throws OlapException, XmlaOlap4jProxyException {
         final String catalog = olap4jConnection.getCatalog();
         final String roleName = olap4jConnection.getRoleName();
         final String propList = olap4jConnection.makeConnectionPropertyList();
@@ -413,13 +418,17 @@ abstract class XmlaOlap4jStatement implements OlapStatement {
     }
 
     public RowSet executeTabularQuery(String dax) throws OlapException {
-        return (RowSet) executeOlapQuery(dax, (olap4jStatement) -> {
-            try {
-                return olap4jConnection.factory.newRowSet(olap4jStatement);
-            } catch (OlapException e) {
-                throw new RuntimeException(e);
-            }
-        });
+       try {
+          return (RowSet) executeOlapQuery(dax, (olap4jStatement) -> {
+              try {
+                  return olap4jConnection.factory.newRowSet(olap4jStatement);
+              } catch (OlapException e) {
+                  throw new RuntimeException(e);
+              }
+          });
+       } catch (XmlaOlap4jProxyException e) {
+          throw new RuntimeException(e);
+       }
     }
 
     public void addListener(

@@ -17,14 +17,22 @@
 */
 package org.olap4j.driver.xmla;
 
+import java.sql.Connection;
+import java.sql.Driver;
+import java.sql.DriverManager;
+import java.sql.DriverPropertyInfo;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.WeakHashMap;
+import java.util.logging.Logger;
+
 import org.olap4j.driver.xmla.proxy.XmlaOlap4jHttpProxy;
 import org.olap4j.driver.xmla.proxy.XmlaOlap4jProxy;
 import org.olap4j.impl.Olap4jUtil;
-
-import java.sql.*;
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.logging.Logger;
 
 /**
  * Olap4j driver for generic XML for Analysis (XMLA) providers.
@@ -130,23 +138,6 @@ public class XmlaOlap4jDriver implements Driver {
 
     private final Factory factory;
 
-    /**
-     * Executor shared by all connections making asynchronous XMLA calls.
-     */
-    private static final ExecutorService executor;
-
-    static {
-        executor = Executors.newCachedThreadPool(
-            new ThreadFactory() {
-                public Thread newThread(Runnable r) {
-                    Thread t = Executors.defaultThreadFactory().newThread(r);
-                    t.setDaemon(true);
-                    return t;
-               }
-            }
-        );
-    }
-
     private static int nextCookie;
 
     static {
@@ -172,11 +163,7 @@ public class XmlaOlap4jDriver implements Driver {
         try {
             final Class<?> clazz = Class.forName(factoryClassName);
             return (Factory) clazz.newInstance();
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
-        } catch (InstantiationException e) {
+        } catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
             throw new RuntimeException(e);
         }
     }
@@ -302,31 +289,7 @@ public class XmlaOlap4jDriver implements Driver {
                 return proxy;
             }
         }
-        return new XmlaOlap4jHttpProxy(this);
-    }
-
-    /**
-     * Returns a future object representing an asynchronous submission of an
-     * XMLA request to a URL.
-     *
-     * @param proxy Proxy via which to send the request
-     * @param serverInfos Server infos.
-     * @param request Request
-     * @return Future object from which the byte array containing the result
-     * of the XMLA call can be obtained
-     */
-    public static Future<byte[]> getFuture(
-        final XmlaOlap4jProxy proxy,
-        final XmlaOlap4jServerInfos serverInfos,
-        final String request)
-    {
-        return executor.submit(
-            new Callable<byte[]>() {
-                public byte[] call() throws Exception {
-                    return proxy.get(serverInfos, request);
-                }
-            }
-        );
+        return new XmlaOlap4jHttpProxy(this, map);
     }
 
     /**
@@ -361,7 +324,8 @@ public class XmlaOlap4jDriver implements Driver {
         CACHE("Class name of the SOAP cache implementation"),
         ROLE("Comma separated list of roles this connection impersonates"),
         USER("Username to use when creating connections to the server."),
-        PASSWORD("Password to use when creating connections to the server.");
+        PASSWORD("Password to use when creating connections to the server."),
+        ZIPKINSERVICENAME("Remote service name for http client tracing");
 
         /**
          * Creates a property.
