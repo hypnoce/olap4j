@@ -739,7 +739,7 @@ public class XmlaOlap4jRowSet extends XmlaOlap4jResultSet implements RowSet {
             NodeList columns = (NodeList) XPATH.evaluate(".//*[name()='xsd:complexType'][@name='row']//*[name()='xsd:element']", root, XPathConstants.NODESET);
             rowSetMetaData.setColumnCount(columns.getLength());
             for(int i = 0 ; i < columns.getLength() ; ++i) {
-                String field = ((Element) columns.item(i)).getAttribute("sql:field");
+                String field = getBracketlessField(columns, i);
                 String name = ((Element) columns.item(i)).getAttribute("name");
                 String type = ((Element) columns.item(i)).getAttribute("type");
                 rowSetMetaData.setColumnName(i + 1, name);
@@ -757,6 +757,22 @@ public class XmlaOlap4jRowSet extends XmlaOlap4jResultSet implements RowSet {
                 data.add(o);
             }
         }
+    }
+
+    /**
+     * Needed to workaround automatic brackets added around measures - although they were not in the original query
+     */
+    private String getBracketlessField(NodeList columns, int i) {
+        String field = ((Element) columns.item(i)).getAttribute("sql:field");
+        return inBrackets(field) ? removeBrackets(field) : field;
+    }
+
+    private boolean inBrackets(String field) {
+        return field.startsWith("[") && field.endsWith("]");
+    }
+
+    private String removeBrackets(String field) {
+        return field.substring(1, field.length() - 1);
     }
 
     @Override
