@@ -239,7 +239,7 @@
       </releases>
       <id>pentaho</id>
       <name>Pentaho</name>
-      <url>http://repo.pentaho.org/artifactory/repo</url>
+      <url>http://repository.pentaho.org/artifactory/pentaho</url>
     </repository>
   </repositories>
 
