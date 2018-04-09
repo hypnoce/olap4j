@@ -1142,17 +1142,15 @@ abstract class XmlaOlap4jConnection implements OlapConnection {
             for (int i = 0; i < restrictions.length; i += 2) {
                 final String restriction = (String) restrictions[i];
                 final Object o = restrictions[i + 1];
-                if (o instanceof String) {
+               // To remind ourselves to generate a <Catalog> restriction
+               // if the request supports it.
+               if (restriction.equals("CATALOG_NAME")) {
+                  restrictedCatalogName = (String) o;
+               } else if (o instanceof String) {
                     buf.append("<").append(restriction).append(">");
                     final String value = (String) o;
                     xmlEncode(buf, value);
                     buf.append("</").append(restriction).append(">");
-
-                    // To remind ourselves to generate a <Catalog> restriction
-                    // if the request supports it.
-                    if (restriction.equals("CATALOG_NAME")) {
-                        restrictedCatalogName = value;
-                    }
                 } else {
                     //noinspection unchecked
                     List<String> valueList = (List<String>) o;
@@ -2501,7 +2499,18 @@ abstract class XmlaOlap4jConnection implements OlapConnection {
             new MetadataColumn("SCHEMA_NAME"),
             new MetadataColumn("CUBE_NAME"),
             new MetadataColumn("SET_NAME"),
-            new MetadataColumn("SCOPE"));
+            new MetadataColumn("SCOPE")),
+         TMSCHEMA_COLUMNS(
+           new MetadataColumn("ID"),
+           new MetadataColumn("TableID"),
+           new MetadataColumn("ExplicitName"),
+           new MetadataColumn("ExplicitDataType"),
+           new MetadataColumn("IsHidden"),
+           new MetadataColumn("SortByColumnID")),
+       TMSCHEMA_TABLES(
+         new MetadataColumn("ID"),
+         new MetadataColumn("Name")
+       );
 
         final List<MetadataColumn> columns;
         final Map<String, MetadataColumn> columnsByName;
