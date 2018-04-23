@@ -787,7 +787,7 @@ abstract class XmlaOlap4jDatabaseMetaData implements OlapDatabaseMetaData {
           tableId = tableInfo.keySet().iterator().next();
        }
 
-       ResultSet metadata = this.getTColumns(catalog, tableId);
+       ResultSet metadata = this.getTColumns(catalog, tableId, columnNamePattern);
 
        Map<String, String> columnIdToNameMapping = new HashMap<>();
 
@@ -861,7 +861,8 @@ abstract class XmlaOlap4jDatabaseMetaData implements OlapDatabaseMetaData {
                         "SCOPE_TABLE",
                         "SOURCE_DATA_TYPE",
                         "IS_AUTOINCREMENT",
-                        "IS_GENERATEDCOLUMN"), rowList);
+                        "IS_GENERATEDCOLUMN",
+                        "SORT_BY_COLUMN"), rowList);
     }
 
     public static void main(String[] args) throws SQLException {
@@ -1226,9 +1227,9 @@ abstract class XmlaOlap4jDatabaseMetaData implements OlapDatabaseMetaData {
             "PROPERTY_NAME", wildcard(propertyNamePattern));
     }
 
-    public ResultSet getTColumns(String catalog, String tableId) throws OlapException {
+    public ResultSet getTColumns(String catalog, String tableId, String columnNamePattern) throws OlapException {
        return getMetadata(
-         XmlaOlap4jConnection.MetadataRequest.TMSCHEMA_COLUMNS, "CATALOG_NAME", catalog, "TableID", tableId, "IsHidden", "False");
+         XmlaOlap4jConnection.MetadataRequest.TMSCHEMA_COLUMNS, "CATALOG_NAME", catalog, "TableID", tableId,"ExplicitName", columnNamePattern, "IsHidden", "False");
     }
 
 
