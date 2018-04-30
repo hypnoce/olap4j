@@ -1,17 +1,8 @@
 package org.olap4j.driver.xmla;
 
-import org.olap4j.OlapException;
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
+import static org.olap4j.driver.xmla.XmlaOlap4jUtil.childElements;
+import static org.olap4j.driver.xmla.XmlaOlap4jUtil.findChild;
 
-import javax.sql.RowSet;
-import javax.sql.RowSetListener;
-import javax.sql.RowSetMetaData;
-import javax.sql.rowset.RowSetMetaDataImpl;
-import javax.xml.xpath.XPath;
-import javax.xml.xpath.XPathConstants;
-import javax.xml.xpath.XPathExpressionException;
-import javax.xml.xpath.XPathFactory;
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -34,9 +25,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.IntStream;
+import javax.sql.RowSet;
+import javax.sql.RowSetListener;
+import javax.sql.RowSetMetaData;
+import javax.sql.rowset.RowSetMetaDataImpl;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
 
-import static org.olap4j.driver.xmla.XmlaOlap4jUtil.childElements;
-import static org.olap4j.driver.xmla.XmlaOlap4jUtil.findChild;
+import org.olap4j.OlapException;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
 
 public class XmlaOlap4jRowSet extends XmlaOlap4jResultSet implements RowSet {
     private final static XPath XPATH = XPathFactory.newInstance().newXPath();
@@ -739,7 +739,7 @@ public class XmlaOlap4jRowSet extends XmlaOlap4jResultSet implements RowSet {
             NodeList columns = (NodeList) XPATH.evaluate(".//*[name()='xsd:complexType'][@name='row']//*[name()='xsd:element']", root, XPathConstants.NODESET);
             rowSetMetaData.setColumnCount(columns.getLength());
             for(int i = 0 ; i < columns.getLength() ; ++i) {
-                String field = getBracketlessField(columns, i);
+                String field = ((Element) columns.item(i)).getAttribute("sql:field");
                 String name = ((Element) columns.item(i)).getAttribute("name");
                 String type = ((Element) columns.item(i)).getAttribute("type");
                 rowSetMetaData.setColumnName(i + 1, name);
@@ -757,22 +757,6 @@ public class XmlaOlap4jRowSet extends XmlaOlap4jResultSet implements RowSet {
                 data.add(o);
             }
         }
-    }
-
-    /**
-     * Needed to workaround automatic brackets added around measures - although they were not in the original query
-     */
-    private String getBracketlessField(NodeList columns, int i) {
-        String field = ((Element) columns.item(i)).getAttribute("sql:field");
-        return inBrackets(field) ? removeBrackets(field) : field;
-    }
-
-    private boolean inBrackets(String field) {
-        return field.startsWith("[") && field.endsWith("]");
-    }
-
-    private String removeBrackets(String field) {
-        return field.substring(1, field.length() - 1);
     }
 
     @Override
