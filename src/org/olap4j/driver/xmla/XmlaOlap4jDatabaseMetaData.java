@@ -787,7 +787,8 @@ abstract class XmlaOlap4jDatabaseMetaData implements OlapDatabaseMetaData {
           tableId = tableInfo.keySet().iterator().next();
        }
 
-       ResultSet metadata = this.getTColumns(catalog, tableId, columnNamePattern);
+       //the column name is null in order to bring the ID of all the columns in the Table
+       ResultSet metadata = this.getTColumns(catalog, tableId, null);
 
        Map<String, String> columnIdToNameMapping = new HashMap<>();
 
@@ -866,8 +867,8 @@ abstract class XmlaOlap4jDatabaseMetaData implements OlapDatabaseMetaData {
     }
 
     public static void main(String[] args) throws SQLException {
-        final Connection connect = new XmlaOlap4jDriver().connect("jdbc:xmla:Server=http://POPRTBI-WIN-4/DAX/msmdpump.dll;DataSource=BISQLSERVER;Catalog=CAMING;User=rtbi;Password=WeDontCr@ckUnderPressure", new Properties());
-       final ResultSet engine_info_table = connect.getMetaData().getColumns(connect.getCatalog(), connect.getSchema(), "ENGINE_INFO_TABLE", null);
+        final Connection connect = new XmlaOlap4jDriver().connect("jdbc:xmla:Server=http://POPRTBI-WIN-4/DAX/msmdpump.dll;DataSource=BISQLSERVER;Catalog=FromExcel1;User=rtbi;Password=WeDontCr@ckUnderPressure", new Properties());
+       final ResultSet engine_info_table = connect.getMetaData().getColumns(connect.getCatalog(), connect.getSchema(), "Ratings", "Rating");
         System.out.println();
     }
 
