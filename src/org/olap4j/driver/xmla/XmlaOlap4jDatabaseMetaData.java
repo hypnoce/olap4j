@@ -800,42 +800,45 @@ abstract class XmlaOlap4jDatabaseMetaData implements OlapDatabaseMetaData {
 
         List<List<Object>> rowList = new ArrayList<>();
        while (metadata.next()) {
-          List<Object> row = new ArrayList<>();
-          Integer dataType = dataTypeMapping.get(metadata.getInt(4));
+          String columnName = metadata.getString(3);
+          if (columnNamePattern == null || columnNamePattern.isEmpty() || columnName.equals(columnNamePattern)) {
+             List<Object> row = new ArrayList<>();
+             Integer dataType = dataTypeMapping.get(metadata.getInt(4));
 
-          row.add(catalog); //TABLE_CAT
-          row.add(null); //TABLE_SCHEM
-          row.add(tableInfo.get(metadata.getString(2))); //TABLE_NAME
-          row.add(metadata.getString(3)); //COLUMN_NAME
-          row.add(dataType); //DATA_TYPE
-          row.add(null); //TYPE_NAME
-          row.add(null); //COLUMN_SIZE
-          row.add(null); //BUFFER_LENGTH
-          row.add(null); //DECIMAL_DIGITS
-          row.add(10); //NUM_PREC_RADIX
-          row.add(false); //NULLABLE
-          row.add(null); //REMARKS
-          row.add(null); //COLUMN_DEF
-          row.add(dataType); //SQL_DATA_TYPE
-          row.add(null); //SQL_DATETIME_SUB
-          row.add(Integer.MAX_VALUE); //CHAR_OCTET_LENGTH
-          row.add(-1); //ORDINAL_POSITION
-          row.add(""); //IS_NULLABLE
-          row.add(null); //SCOPE_CATALOG
-          row.add(null); //SCOPE_SCHEMA
-          row.add(null); //SCOPE_TABLE
-          row.add(null); //SOURCE_DATA_TYPE
-          row.add(""); //IS_AUTOINCREMENT
-          row.add(""); //IS_GENERATEDCOLUMN
+             row.add(catalog); //TABLE_CAT
+             row.add(null); //TABLE_SCHEM
+             row.add(tableInfo.get(metadata.getString(2))); //TABLE_NAME
+             row.add(columnName); //COLUMN_NAME
+             row.add(dataType); //DATA_TYPE
+             row.add(null); //TYPE_NAME
+             row.add(null); //COLUMN_SIZE
+             row.add(null); //BUFFER_LENGTH
+             row.add(null); //DECIMAL_DIGITS
+             row.add(10); //NUM_PREC_RADIX
+             row.add(false); //NULLABLE
+             row.add(null); //REMARKS
+             row.add(null); //COLUMN_DEF
+             row.add(dataType); //SQL_DATA_TYPE
+             row.add(null); //SQL_DATETIME_SUB
+             row.add(Integer.MAX_VALUE); //CHAR_OCTET_LENGTH
+             row.add(-1); //ORDINAL_POSITION
+             row.add(""); //IS_NULLABLE
+             row.add(null); //SCOPE_CATALOG
+             row.add(null); //SCOPE_SCHEMA
+             row.add(null); //SCOPE_TABLE
+             row.add(null); //SOURCE_DATA_TYPE
+             row.add(""); //IS_AUTOINCREMENT
+             row.add(""); //IS_GENERATEDCOLUMN
 
-          String sortById = metadata.getString(6);
+             String sortById = metadata.getString(6);
 
-          if (sortById == null) {
-             sortById = "";
+             if (sortById == null) {
+                sortById = "";
+             }
+
+             row.add(columnIdToNameMapping.getOrDefault(sortById, ""));
+             rowList.add(row);
           }
-
-          row.add(columnIdToNameMapping.getOrDefault(sortById, ""));
-          rowList.add(row);
        }
         return olap4jConnection.factory.newFixedResultSet(
                 olap4jConnection, Arrays.asList(
