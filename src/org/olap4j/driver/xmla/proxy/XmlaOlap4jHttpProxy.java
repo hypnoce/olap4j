@@ -28,6 +28,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Future;
 import java.util.zip.GZIPInputStream;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
@@ -160,6 +161,10 @@ public class XmlaOlap4jHttpProxy extends XmlaOlap4jAbstractHttpProxy
 
                 while ((count = is.read(buf)) > 0) {
                    baos.write(buf, 0, count);
+                }
+
+                if(resp.getStatus() >= 400) {
+                   throw new WebApplicationException(new String(baos.toByteArray()), resp.getStatus());
                 }
 
                 return baos.toByteArray();
