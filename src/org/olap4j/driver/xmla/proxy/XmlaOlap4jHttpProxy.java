@@ -26,6 +26,7 @@ import java.io.*;
 import java.net.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.zip.GZIPInputStream;
 import javax.ws.rs.WebApplicationException;
@@ -53,6 +54,8 @@ import javax.ws.rs.core.Response;
  */
 public class XmlaOlap4jHttpProxy extends XmlaOlap4jAbstractHttpProxy
 {
+
+    private final static Map<String, Client> CLIENTS = new ConcurrentHashMap<>();
     private final XmlaOlap4jDriver driver;
     private final Client client;
 
@@ -73,7 +76,10 @@ public class XmlaOlap4jHttpProxy extends XmlaOlap4jAbstractHttpProxy
         if(null != tracingServiceName && !"".equals(tracingServiceName)) {
             clientBuilder.property("TRACING_SERVICE_NAME", tracingServiceName);
         }
-        this.client = clientBuilder.build();
+        if(tracingServiceName == null || tracingServiceName.length() == 0) {
+            tracingServiceName = "no_service";
+        }
+        this.client = CLIENTS.computeIfAbsent(tracingServiceName, sn -> clientBuilder.build());
     }
 
     private static final String DISCOVER =
@@ -169,7 +175,10 @@ public class XmlaOlap4jHttpProxy extends XmlaOlap4jAbstractHttpProxy
 
                 return baos.toByteArray();
              } catch (IOException e) {
+
                 throw new RuntimeException(e);
+             } finally {
+                resp.close();
              }
           });
 
