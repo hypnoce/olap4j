@@ -706,7 +706,7 @@ abstract class XmlaOlap4jConnection implements OlapConnection {
 
     @Override
     public boolean isValid(int timeout) throws SQLException {
-        throw new UnsupportedOperationException();
+        return !isClosed() && getMetaData().getCatalogs() != null;
     }
 
     @Override
