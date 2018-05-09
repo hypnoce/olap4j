@@ -2506,11 +2506,20 @@ abstract class XmlaOlap4jConnection implements OlapConnection {
            new MetadataColumn("ExplicitName"),
            new MetadataColumn("ExplicitDataType"),
            new MetadataColumn("IsHidden"),
-           new MetadataColumn("SortByColumnID")),
-       TMSCHEMA_TABLES(
-         new MetadataColumn("ID"),
-         new MetadataColumn("Name")
-       );
+           new MetadataColumn("SortByColumnID"),
+           new MetadataColumn("IsUnique"),
+           new MetadataColumn("IsNullable")),
+          TMSCHEMA_TABLES(
+            new MetadataColumn("ID"),
+            new MetadataColumn("Name")
+          ),
+         TMSCHEMA_RELATIONSHIPS(
+            new MetadataColumn("FromTableID"),
+            new MetadataColumn("FromColumnID"),
+            new MetadataColumn("ToTableID"),
+            new MetadataColumn("ToColumnID"),
+            new MetadataColumn("IsActive")
+            );
 
         final List<MetadataColumn> columns;
         final Map<String, MetadataColumn> columnsByName;
