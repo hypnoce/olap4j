@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -775,12 +776,7 @@ abstract class XmlaOlap4jDatabaseMetaData implements OlapDatabaseMetaData {
         String tableNamePattern,
         String columnNamePattern) throws SQLException
     {
-       ResultSet tableMetadata = this.getTTables(catalog, tableNamePattern);
-
-       Map<String, String> tableInfo = new HashMap<>();
-       while (tableMetadata.next()) {
-          tableInfo.put(tableMetadata.getString(1), tableMetadata.getString(2));
-       }
+       Map<String, String> tableInfo = getTableNameBasedOnId(catalog, tableNamePattern);
 
        String tableId = null;
        if (tableInfo.size() == 1) {
@@ -790,11 +786,7 @@ abstract class XmlaOlap4jDatabaseMetaData implements OlapDatabaseMetaData {
        //the column name is null in order to bring the ID of all the columns in the Table
        ResultSet metadata = this.getTColumns(catalog, tableId, null);
 
-       Map<String, String> columnIdToNameMapping = new HashMap<>();
-
-       while (metadata.next()) {
-          columnIdToNameMapping.put(metadata.getString(1), metadata.getString(3));
-       }
+       Map<String, String> columnIdToNameMapping = columnNameFetcher(metadata);
 
        metadata.beforeFirst();
 
@@ -822,7 +814,7 @@ abstract class XmlaOlap4jDatabaseMetaData implements OlapDatabaseMetaData {
              row.add(null); //SQL_DATETIME_SUB
              row.add(Integer.MAX_VALUE); //CHAR_OCTET_LENGTH
              row.add(-1); //ORDINAL_POSITION
-             row.add(""); //IS_NULLABLE
+             row.add(metadata.getBoolean(8)? "YES" : "NO"); //IS_NULLABLE
              row.add(null); //SCOPE_CATALOG
              row.add(null); //SCOPE_SCHEMA
              row.add(null); //SCOPE_TABLE
@@ -869,10 +861,29 @@ abstract class XmlaOlap4jDatabaseMetaData implements OlapDatabaseMetaData {
                         "SORT_BY_COLUMN"), rowList);
     }
 
-    public static void main(String[] args) throws SQLException {
+   private Map<String, String> columnNameFetcher(ResultSet metadata) throws SQLException {
+      Map<String, String> columnIdToNameMapping = new HashMap<>();
+
+      while (metadata.next()) {
+         columnIdToNameMapping.put(metadata.getString(1), metadata.getString(3));
+      }
+      return columnIdToNameMapping;
+   }
+
+   private Map<String, String> getTableNameBasedOnId(String catalog, String tableNamePattern) throws SQLException {
+      ResultSet tableMetadata = this.getTTables(catalog, tableNamePattern);
+
+      Map<String, String> tableInfo = new HashMap<>();
+      while (tableMetadata.next()) {
+         tableInfo.put(tableMetadata.getString(1), tableMetadata.getString(2));
+      }
+      return tableInfo;
+   }
+
+   public static void main(String[] args) throws SQLException {
         final Connection connect = new XmlaOlap4jDriver().connect("jdbc:xmla:Server=http://POPRTBI-WIN-4/DAX/msmdpump.dll;DataSource=BISQLSERVER;Catalog=FromExcel1;User=rtbi;Password=WeDontCr@ckUnderPressure", new Properties());
-       final ResultSet engine_info_table = connect.getMetaData().getColumns(connect.getCatalog(), connect.getSchema(), "Ratings", "Rating");
-        System.out.println();
+       final ResultSet engine_info_table = connect.getMetaData().getIndexInfo(connect.getCatalog(), connect.getSchema(), "Accounts", true, false);
+       System.out.println(engine_info_table);
     }
 
     public ResultSet getColumnPrivileges(
@@ -917,7 +928,61 @@ abstract class XmlaOlap4jDatabaseMetaData implements OlapDatabaseMetaData {
     public ResultSet getImportedKeys(
         String catalog, String schema, String table) throws SQLException
     {
-        throw new UnsupportedOperationException();
+       Map<String, String> tableInfo = getTableNameBasedOnId(catalog, null);
+
+       Optional<String> tableKey = tableInfo.entrySet().stream()
+         .filter(p -> p.getValue().equals(table))
+         .map(Map.Entry::getKey)
+         .findFirst();
+
+       ResultSet columns = getTColumns(catalog, null, null);
+       Map<String, String> columnFetcher = columnNameFetcher(columns);
+
+       ResultSet relations;
+       if (tableKey.isPresent()) {
+          relations = getTRelations(catalog,tableKey.get());
+       } else {
+          throw new SQLException("Table name is not found");
+       }
+
+       List<List<Object>> rows = new ArrayList<>();
+       while (relations.next()) {
+          List<Object> row = new ArrayList<>();
+
+          row.add(catalog); //PKTABLE_CAT
+          row.add(null); //PKTABLE_SCHEM
+          row.add(tableInfo.get(relations.getString(3))); //PKTABLE_NAME
+          row.add(columnFetcher.get(relations.getString(4))); //PKCOLUMN_NAME
+          row.add(catalog); //FKTABLE_CAT
+          row.add(null); //FKTABLE_SCHEM
+          row.add(tableInfo.get(relations.getString(1))); //FKTABLE_NAME
+          row.add(columnFetcher.get(relations.getString(2))); //FKCOLUMN_NAME
+          row.add(null); //KEY_SEQ
+          row.add(false); //UPDATE_RULE
+          row.add(null); //DELETE_RULE
+          row.add(null); //FK_NAME
+          row.add(null); //PK_NAME
+          row.add(null); //DEFERRABILITY
+
+          rows.add(row);
+       }
+
+       return olap4jConnection.factory.newFixedResultSet(
+         olap4jConnection, Arrays.asList(
+           "PKTABLE_CAT",
+           "PKTABLE_SCHEM",
+           "PKTABLE_NAME",
+           "PKCOLUMN_NAME",
+           "FKTABLE_CAT",
+           "FKTABLE_SCHEM",
+           "FKTABLE_NAME",
+           "FKCOLUMN_NAME",
+           "KEY_SEQ",
+           "UPDATE_RULE",
+           "DELETE_RULE",
+           "FK_NAME",
+           "PK_NAME",
+           "DEFERRABILITY"), rows);
     }
 
     public ResultSet getExportedKeys(
@@ -948,7 +1013,57 @@ abstract class XmlaOlap4jDatabaseMetaData implements OlapDatabaseMetaData {
         boolean unique,
         boolean approximate) throws SQLException
     {
-        throw new UnsupportedOperationException();
+
+       Map<String, String> tableInfo = getTableNameBasedOnId(catalog, null);
+
+       Optional<String> tableKey = tableInfo.entrySet().stream()
+         .filter(p -> p.getValue().equals(table))
+         .map(Map.Entry::getKey)
+         .findFirst();
+
+       ResultSet columns = getTColumns(catalog, tableKey.get(), null);
+
+       List<List<Object>> rows = new ArrayList<>();
+
+       while (columns.next()) {
+          boolean isUnique = columns.getBoolean(7);
+
+          if (!unique || isUnique) {
+             List<Object> row = new ArrayList<>();
+
+             row.add(catalog); //TABLE_CAT
+             row.add(null); //TABLE_SCHEM
+             row.add(table); //TABLE_NAME
+             row.add(!isUnique); //NON_UNIQUE
+             row.add(null); //INDEX_QUALIFIER
+             row.add(null); //INDEX_NAME
+             row.add(null); //TYPE
+             row.add(null); //ORDINAL_POSITION
+             row.add(columns.getString(3)); //COLUMN_NAME
+             row.add(null); //ASC_OR_DESC
+             row.add(null); //CARDINALITY
+             row.add(null); //PAGES
+             row.add(null); //FILTER_CONDITION
+
+             rows.add(row);
+          }
+       }
+
+       return olap4jConnection.factory.newFixedResultSet(
+         olap4jConnection, Arrays.asList(
+           "TABLE_CAT",
+           "TABLE_SCHEM",
+           "TABLE_NAME",
+           "NON_UNIQUE",
+           "INDEX_QUALIFIER",
+           "INDEX_NAME",
+           "TYPE",
+           "ORDINAL_POSITION",
+           "COLUMN_NAME",
+           "ASC_OR_DESC",
+           "CARDINALITY",
+           "PAGES",
+           "FILTER_CONDITION"), rows);
     }
 
     public boolean supportsResultSetType(int type) throws SQLException {
@@ -1231,15 +1346,20 @@ abstract class XmlaOlap4jDatabaseMetaData implements OlapDatabaseMetaData {
             "PROPERTY_NAME", wildcard(propertyNamePattern));
     }
 
-    public ResultSet getTColumns(String catalog, String tableId, String columnNamePattern) throws OlapException {
+    private  ResultSet getTColumns(String catalog, String tableId, String columnNamePattern) throws OlapException {
        return getMetadata(
          XmlaOlap4jConnection.MetadataRequest.TMSCHEMA_COLUMNS, "CATALOG_NAME", catalog, "TableID", tableId,"ExplicitName", columnNamePattern, "IsHidden", "False");
     }
 
 
-   public ResultSet getTTables(String catalog, String tableNamePattern) throws OlapException {
+   private ResultSet getTTables(String catalog, String tableNamePattern) throws OlapException {
       return getMetadata(
         XmlaOlap4jConnection.MetadataRequest.TMSCHEMA_TABLES, "CATALOG_NAME", catalog, "Name", wildcard(tableNamePattern));
+   }
+
+   private ResultSet getTRelations(String catalog,String fromTableId) throws OlapException {
+      return getMetadata(
+        XmlaOlap4jConnection.MetadataRequest.TMSCHEMA_RELATIONSHIPS, "CATALOG_NAME", catalog,"FromTableID", fromTableId);
    }
 
     public String getMdxKeywords() throws OlapException {
