@@ -2459,7 +2459,8 @@ abstract class XmlaOlap4jConnection implements OlapConnection {
             new MetadataColumn("DATA_TYPE"),
             new MetadataColumn("MEASURE_IS_VISIBLE"),
             new MetadataColumn("LEVELS_LIST"),
-            new MetadataColumn("DESCRIPTION")),
+            new MetadataColumn("DESCRIPTION"),
+            new MetadataColumn("EXPRESSION")),
         MDSCHEMA_MEMBERS(
             new MetadataColumn("CATALOG_NAME"),
             new MetadataColumn("SCHEMA_NAME"),
