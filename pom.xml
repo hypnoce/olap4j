@@ -75,7 +75,7 @@
       <uniqueVersion>false</uniqueVersion>
       <id>pentaho</id>
       <name>Pentaho Open Repository</name>
-      <url>http://repository.pentaho.org/artifactory/pentaho</url>
+      <url>http://nexus.pentaho.org/content/groups/omni</url>
       <layout>default</layout>
     </repository>
   </distributionManagement>
@@ -102,7 +102,7 @@
     <maven-replacer-plugin.version>1.4.0</maven-replacer-plugin.version>
     <maven-source-plugin.version>2.1.2</maven-source-plugin.version>
     <maven-surefire-plugin.version>2.17</maven-surefire-plugin.version>
-    <mondrian-data-foodmart.version>0.9-SNAPSHOT</mondrian-data-foodmart.version>
+    <mondrian-data-foodmart.version>1.0.0</mondrian-data-foodmart.version>
     <mondrian.version>4.3.0.1-130</mondrian.version>
     <mysql-connector-java.version>5.1.38</mysql-connector-java.version>
     <rt-java5.version>1.5.0_22</rt-java5.version>
@@ -249,7 +249,7 @@
       </releases>
       <id>pentaho</id>
       <name>Pentaho</name>
-      <url>http://repository.pentaho.org/artifactory/pentaho</url>
+      <url>http://nexus.pentaho.org/content/groups/omni</url>
     </repository>
   </repositories>
 
@@ -337,6 +337,7 @@
           <excludes>
             <exclude>**/*.md</exclude>
             <exclude>RELEASE_CHECKLIST.txt</exclude>
+            <exclude>VERSION.txt</exclude>
             <exclude>doc/*</exclude>
             <exclude>.travis.yml</exclude>
           </excludes>
