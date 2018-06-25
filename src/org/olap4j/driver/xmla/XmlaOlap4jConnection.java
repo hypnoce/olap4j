@@ -1168,6 +1168,10 @@ abstract class XmlaOlap4jConnection implements OlapConnection {
             + "    <Properties>\n"
             + "      <PropertyList>\n");
 
+        buf.append("        <SspropInitAppName>");
+        xmlEncode(buf, "OLAP4J");
+        buf.append("</SspropInitAppName>\n");
+
         String conProperties = makeConnectionPropertyList();
         if (conProperties != null && !("".equals(conProperties))) {
             buf.append(conProperties);
