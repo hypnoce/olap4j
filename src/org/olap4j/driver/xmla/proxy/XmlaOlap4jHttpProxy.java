@@ -17,6 +17,7 @@
 */
 package org.olap4j.driver.xmla.proxy;
 
+import java.util.HashMap;
 import java.util.Map;
 import org.olap4j.driver.xmla.XmlaOlap4jDriver;
 import org.olap4j.driver.xmla.XmlaOlap4jServerInfos;
@@ -26,7 +27,6 @@ import java.io.*;
 import java.net.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.zip.GZIPInputStream;
 import javax.ws.rs.WebApplicationException;
@@ -55,9 +55,11 @@ import javax.ws.rs.core.Response;
 public class XmlaOlap4jHttpProxy extends XmlaOlap4jAbstractHttpProxy
 {
 
-    private final static Map<String, Client> CLIENTS = new ConcurrentHashMap<>();
+    private final static Map<String, ArcClient> CLIENTS = new HashMap<>();
+    private final static Object CLIENTS_LOCK = new Object();
     private final XmlaOlap4jDriver driver;
     private final Client client;
+    private String tracingServiceName;
 
     /**
      * Creates a XmlaOlap4jHttpProxy.
@@ -68,7 +70,7 @@ public class XmlaOlap4jHttpProxy extends XmlaOlap4jAbstractHttpProxy
         XmlaOlap4jDriver driver, Map<String, String> properties)
     {
         this.driver = driver;
-        String tracingServiceName = properties.get(XmlaOlap4jDriver.Property.ZIPKINSERVICENAME.name());
+        tracingServiceName = properties.get(XmlaOlap4jDriver.Property.ZIPKINSERVICENAME.name());
         if(null == tracingServiceName || "".equals(tracingServiceName)) {
             tracingServiceName = properties.get(XmlaOlap4jDriver.Property.CATALOG.name());
         }
@@ -79,7 +81,11 @@ public class XmlaOlap4jHttpProxy extends XmlaOlap4jAbstractHttpProxy
         if(tracingServiceName == null || tracingServiceName.length() == 0) {
             tracingServiceName = "no_service";
         }
-        this.client = CLIENTS.computeIfAbsent(tracingServiceName, sn -> clientBuilder.build());
+
+        synchronized (CLIENTS_LOCK) {
+            CLIENTS.computeIfPresent(tracingServiceName, (s, arcClient) -> arcClient.retain());
+            this.client = CLIENTS.computeIfAbsent(tracingServiceName, sn -> new ArcClient(clientBuilder.build())).getClient();
+        }
     }
 
     private static final String DISCOVER =
@@ -200,18 +206,23 @@ public class XmlaOlap4jHttpProxy extends XmlaOlap4jAbstractHttpProxy
     }
 
     @Override
-    public void close() throws IOException {
-        if(this.client != null) {
-            this.client.close();
-        }
+    public void close() {
+        releaseClient();
     }
 
     @Override
     protected void finalize() throws Throwable {
-        if(this.client != null) {
-            this.client.close();
-        }
+        releaseClient();
         super.finalize();
+    }
+
+    private void releaseClient() {
+        synchronized (CLIENTS_LOCK) {
+            ArcClient arcClient = CLIENTS.get(tracingServiceName);
+            if(arcClient != null && arcClient.release()) {
+                CLIENTS.remove(tracingServiceName);
+            }
+        }
     }
 }
 
