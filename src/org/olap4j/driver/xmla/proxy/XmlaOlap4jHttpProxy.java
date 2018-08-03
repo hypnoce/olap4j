@@ -157,8 +157,8 @@ public class XmlaOlap4jHttpProxy extends XmlaOlap4jAbstractHttpProxy
           final String encoding = getEncodingCharsetName();
 
           // Get the response, again assuming default encoding.
-          final CompletionStage<Response> rxResp = invocation.rx().post(Entity.entity(request.getBytes(encoding), MediaType.TEXT_XML + "; charset=" + getEncodingCharsetName()));
-          final CompletableFuture<Response> future = rxResp.toCompletableFuture();
+          final Response response = invocation.post(Entity.entity(request.getBytes(encoding), MediaType.TEXT_XML + "; charset=" + getEncodingCharsetName()));
+          final CompletableFuture<Response> future = CompletableFuture.completedFuture(response);
           return future.thenApply(resp -> {
              try {
                 InputStream is = resp.readEntity(InputStream.class);
