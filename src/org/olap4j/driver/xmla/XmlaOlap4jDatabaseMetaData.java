@@ -229,7 +229,7 @@ abstract class XmlaOlap4jDatabaseMetaData implements OlapDatabaseMetaData {
     }
 
     public String getUserName() throws SQLException {
-        throw new UnsupportedOperationException();
+        return "";
     }
 
     public boolean isReadOnly() throws SQLException {

@@ -91,7 +91,7 @@ public class XmlaOlap4jRowSet extends XmlaOlap4jResultSet implements RowSet {
 
     @Override
     public String getUsername() {
-        return null;
+        return "";
     }
 
     @Override
