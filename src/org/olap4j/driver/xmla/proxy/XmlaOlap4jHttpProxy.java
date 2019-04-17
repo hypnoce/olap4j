@@ -26,6 +26,7 @@ import org.olap4j.impl.Base64;
 import java.io.*;
 import java.net.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Future;
 import java.util.zip.GZIPInputStream;
 import javax.ws.rs.WebApplicationException;
@@ -82,7 +83,8 @@ public class XmlaOlap4jHttpProxy extends XmlaOlap4jAbstractHttpProxy
         }
 
         synchronized (CLIENTS_LOCK) {
-            this.client = CLIENTS.computeIfAbsent(tracingServiceName, sn -> new ArcClient(clientBuilder.build())).retain().getClient();
+            CLIENTS.computeIfPresent(tracingServiceName, (s, arcClient) -> arcClient.retain());
+            this.client = CLIENTS.computeIfAbsent(tracingServiceName, sn -> new ArcClient(clientBuilder.build())).getClient();
         }
     }
 
