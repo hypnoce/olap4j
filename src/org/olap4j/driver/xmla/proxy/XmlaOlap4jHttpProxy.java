@@ -210,12 +210,6 @@ public class XmlaOlap4jHttpProxy extends XmlaOlap4jAbstractHttpProxy
         releaseClient();
     }
 
-    @Override
-    protected void finalize() throws Throwable {
-        releaseClient();
-        super.finalize();
-    }
-
     private void releaseClient() {
         synchronized (CLIENTS_LOCK) {
             ArcClient arcClient = CLIENTS.get(tracingServiceName);
