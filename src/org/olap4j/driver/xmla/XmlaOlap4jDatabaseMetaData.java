@@ -753,7 +753,41 @@ abstract class XmlaOlap4jDatabaseMetaData implements OlapDatabaseMetaData {
         String tableNamePattern,
         String types[]) throws SQLException
     {
-        throw new UnsupportedOperationException();
+        //the column name is null in order to bring the ID of all the columns in the Table
+        ResultSet metadata = this.getTTables(catalog, tableNamePattern);
+
+        metadata.beforeFirst();
+
+        List<List<Object>> rowList = new ArrayList<>();
+        while (metadata.next()) {
+            String tableName = metadata.getString(2);
+            if (tableNamePattern == null || tableNamePattern.isEmpty() || tableName.equals(tableNamePattern)) {
+                List<Object> row = new ArrayList<>();
+                row.add(catalog); //TABLE_CAT
+                row.add(null); //TABLE_SCHEM
+                row.add(tableName); //TABLE_NAME
+                row.add("DIMENSION"); //TABLE_TYPE
+                row.add(null); //REMARKS
+                row.add(null); //TYPE_CAT
+                row.add(null); //TYPE_SCHEM
+                row.add(null); //TYPE_NAME
+                row.add(null); //SELF_REFERENCING_COL_NAME
+                row.add(null); //REF_GENERATION
+                rowList.add(row);
+            }
+        }
+        return olap4jConnection.factory.newFixedResultSet(
+                olap4jConnection, Arrays.asList(
+                        "TABLE_CAT",
+                        "TABLE_SCHEM",
+                        "TABLE_NAME",
+                        "TABLE_TYPE",
+                        "REMARKS",
+                        "TYPE_CAT",
+                        "TYPE_SCHEM",
+                        "TYPE_NAME",
+                        "SELF_REFERENCING_COL_NAME",
+                        "REF_GENERATION"), rowList);
     }
 
     public ResultSet getSchemas() throws OlapException {
